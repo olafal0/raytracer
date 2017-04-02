@@ -16,15 +16,21 @@ public:
   void makeNormalized();
   void rotateAroundX(float degrees);
   void rotateAroundY(float degrees);
+  float dot(const vec3 rhs);
   vec3& operator= (const vec3& rhs);
-  vec3 operator+ (const vec3& rhs);
-  vec3 operator* (const float scalar);
-  vec3 operator- (const vec3& rhs);
+  vec3 operator+ (const vec3& rhs) const;
+  vec3 operator* (const float scalar) const;
+  vec3 operator- (const vec3& rhs) const;
 };
 
 struct rayhit {
 public:
   vec3 point, normal;
+  float distance;
+  bool hitSomething;
+  explicit operator bool() const {
+    return hitSomething;
+  }
 };
 
 struct ray {
@@ -37,6 +43,12 @@ class sphere {
 public:
   vec3 pos;
   float rad;
+  unsigned int rgba;
+  sphere () {
+    pos = vec3(0,0,0);
+    rad = 0.5;
+    rgba = 0xffffffff;
+  };
 };
 
 // represents a combination camera/screen

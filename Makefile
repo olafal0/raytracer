@@ -5,3 +5,6 @@ all: raytrace.o lodepng.o imshow.o vecmath.o
 
 %.o: %.cpp
 	g++ $(CFLAGS) -c $< $!
+
+clean:
+	rm -f *.o *.gch *.out
