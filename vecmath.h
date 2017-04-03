@@ -12,6 +12,7 @@ public:
   vec3();
   vec3(float,float,float);
   float magnitude();
+  float sqrMagnitude();
   vec3 normalized();
   void makeNormalized();
   void rotateAroundX(float degrees);
@@ -53,6 +54,10 @@ public:
 
 // represents a combination camera/screen
 class view {
+private:
+  float fovrad;
+  float fovtan;
+  float fovtanAspect;
 public:
   vec3 pos;
   vec3 fwd;
@@ -60,4 +65,5 @@ public:
   float fov = 90; // in degrees, in x direction
   unsigned int w, h; // in pixels
   ray getRayForPixel(int,int);
+  view (int width, int height, float fieldOfView);
 };

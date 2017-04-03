@@ -1,5 +1,6 @@
 #include <iostream>
 #include <chrono>
+#include <omp.h>
 #include "imshow.h"
 #include "vecmath.h"
 
@@ -8,6 +9,7 @@
 void getColorAtPixel (ray r, sphere *s, int numSpheres, unsigned char color[]);
 
 int main(int argc, char* argv[]) {
+  int iterations = 100;
   // make a 512x512 image
   uint w, h;
   w = h = 900;
@@ -15,13 +17,9 @@ int main(int argc, char* argv[]) {
   unsigned char rgba [sz*4];
 
   // construct the camera/screen
-  view cam;
-  cam.aspectRatio = (float)w / (float)h;
-  cam.fov = 110.0;
+  view cam = view(w,h,70.0);
   cam.pos = vec3(0,0,-5);
   cam.fwd = vec3(0,0,1); // straight forward
-  cam.w = w;
-  cam.h = h;
 
   sphere s[4];
   s[0] = sphere();
@@ -38,19 +36,33 @@ int main(int argc, char* argv[]) {
   s1.pos = vec3(2,0,0);
   s1.rad = 2.0;
 
+  std::chrono::time_point<std::chrono::system_clock> start, end;
+  std::chrono::duration<double> elapsed_seconds;
+
+  start = std::chrono::system_clock::now();
+
   uint coord;
   unsigned char color[4];
-  for (uint y=0; y<h; y++) {
-    for (uint x=0; x<w; x++) {
-      coord = (x+y*h) * 4;
-      ray r = cam.getRayForPixel(x,y);
-      getColorAtPixel(r,s,4,color);
-      rgba[coord+0] = color[0];
-      rgba[coord+1] = color[1];
-      rgba[coord+2] = color[2];
-      rgba[coord+3] = color[3];
+#pragma omp parallel shared(rgba) private(coord,color)
+  for (int iter=0; iter<iterations; iter++) {
+    #pragma omp for
+    for (uint y=0; y<h; y++) {
+      coord = (y*h)*4;
+      for (uint x=0; x<w; x++) {
+        coord += 4;
+        ray r = cam.getRayForPixel(x,y);
+        getColorAtPixel(r,s,4,color);
+        rgba[coord+0] = color[0];
+        rgba[coord+1] = color[1];
+        rgba[coord+2] = color[2];
+        rgba[coord+3] = color[3];
+      }
     }
   }
+
+  end = std::chrono::system_clock::now();
+  elapsed_seconds = end-start;
+  std::cout << (elapsed_seconds.count()*1000.0/iterations) << "ms\n";
 
   show("Sample image", rgba, w, h);
 }

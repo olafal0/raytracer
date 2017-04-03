@@ -17,6 +17,10 @@ float vec3::magnitude() {
   return sqrt(x*x+y*y+z*z);
 }
 
+float vec3::sqrMagnitude() {
+  return x*x+y*y+z*z;
+}
+
 // returns a new vec3 with a length of 1
 vec3 vec3::normalized() {
   vec3 v;
@@ -91,21 +95,30 @@ ray view::getRayForPixel(int x, int y) {
   r.direction.rotateAroundY(xangle);
   r.direction.makeNormalized();
   */
-  float fovrad = (fov/2.0)*DEG_TO_RAD;
-  r.direction.x = (2*x-(float)w) / ((float)w) * tan(fovrad);
-  r.direction.y = ((float)h-2*y) / ((float)h) * tan(fovrad*aspectRatio);
+  r.direction.x = (2*x-(float)w) / ((float)w) * fovtan;
+  r.direction.y = ((float)h-2*y) / ((float)h) * fovtanAspect;
   r.direction.z = 1;
   r.direction.makeNormalized();
 
   return r;
 }
 
+view::view (int width, int height, float fieldOfView) {
+  w = width;
+  h = height;
+  aspectRatio = (float)w / (float)h;
+  fov = fieldOfView;
+  fovrad = (fov/2.0)*DEG_TO_RAD;
+  fovtan = tan(fovrad);
+  fovtanAspect = tan(fovrad*aspectRatio);
+}
+
 rayhit ray::castAgainst(const sphere s) {
   rayhit hit;
   // math stolen from Wikipedia (en.wikipedia.org/wiki/Line–sphere_intersection)
   float dotProduct = direction.dot(origin-s.pos);
-  float distanceBetween = (origin-s.pos).magnitude();
-  float importantPart = dotProduct*dotProduct - distanceBetween*distanceBetween + s.rad*s.rad;
+  float distanceBetweenSqr = (origin-s.pos).sqrMagnitude();
+  float importantPart = dotProduct*dotProduct - distanceBetweenSqr + s.rad*s.rad;
   if (importantPart < 0) {
     hit.hitSomething = false;
     return hit;
