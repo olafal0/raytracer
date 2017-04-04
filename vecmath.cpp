@@ -58,6 +58,7 @@ vec3 vec3::operator* (const float scalar) const {
   return vec3 (x*scalar,y*scalar,z*scalar);
 }
 
+// 3 mult, 2 add
 float vec3::dot(const vec3 rhs) {
   return x*rhs.x + y*rhs.y + z*rhs.z;
 }
@@ -79,22 +80,19 @@ void vec3::rotateAroundY (float degrees) {
   z = x*-sintheta + z*costheta;
 }
 
+view::view (int width, int height, float fieldOfView) {
+  w = width;
+  h = height;
+  aspectRatio = ((float)w) / ((float)h);
+  fov = fieldOfView;
+  fovrad = (fov/2.0)*DEG_TO_RAD;
+  fovtan = tan(fovrad);
+  fovtanAspect = tan(fovrad)/aspectRatio;
+}
+
 ray view::getRayForPixel(int x, int y) {
   ray r;
   r.origin = pos;
-  /*
-  // get the horizontal angle (rotation around y-axis)
-  float xangle = (2*x-(float)w) / ((float)w); // from -1..+1
-  xangle *= (fov*0.5) * DEG_TO_RAD; // convert to radians
-  // do the same thing for vertical angle (rotation around x-axis) (note: I'm ignoring rotation around z, i.e. roll)
-  float yangle = (2*y-(float)h) / ((float)h); // from -1..+1
-  yangle *= (fov*0.5/aspectRatio) * DEG_TO_RAD;
-  r.direction = fwd;
-
-  r.direction.rotateAroundX(yangle);
-  r.direction.rotateAroundY(xangle);
-  r.direction.makeNormalized();
-  */
   r.direction.x = (2*x-(float)w) / ((float)w) * fovtan;
   r.direction.y = ((float)h-2*y) / ((float)h) * fovtanAspect;
   r.direction.z = 1;
@@ -103,16 +101,7 @@ ray view::getRayForPixel(int x, int y) {
   return r;
 }
 
-view::view (int width, int height, float fieldOfView) {
-  w = width;
-  h = height;
-  aspectRatio = (float)w / (float)h;
-  fov = fieldOfView;
-  fovrad = (fov/2.0)*DEG_TO_RAD;
-  fovtan = tan(fovrad);
-  fovtanAspect = tan(fovrad*aspectRatio);
-}
-
+// 15 mult 21 add 1 branch 2 sqrt
 rayhit ray::castAgainst(const sphere s) {
   rayhit hit;
   // math stolen from Wikipedia (en.wikipedia.org/wiki/Line–sphere_intersection)
