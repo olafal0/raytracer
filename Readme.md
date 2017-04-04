@@ -1,11 +1,3 @@
--a full description of the kernel (or algorithm, application) that you are working on
-
--a first model of performance that predicts how long different instances of the problem should take
-
--a first code that implements the kernel, parallel if you can
-
--a first measurement of performance and ideas about why the performance is not as expected.
-
 ## The Appplication: Raytracing
 Raytracing is an algorithm for rendering in a highly detailed, physically accurate way. In real life, light is emitted by light sources, bounces off of (or is refracted by) objects, and then some of that light hits our eye or a camera. For speed, raytracing involves going backwards: start at the "eye", shoot a ray outwards, and if collisions are detected, use those to generate a color for each pixel of the image.
 
@@ -38,3 +30,16 @@ So, we can get a rough estimate of FLOPs. If *n* is the number of spheres, that 
 The estimated performance, in milliseconds taken to render a 1920x1080 image:
 
 ![](expected-raytrace-perf.png)
+
+## Real Performance measurement
+This is the measured performance, in milliseconds per 1920x1080 image, compared to the theoretical best:
+
+![](actual-raytrace-perf.png)
+
+Performance is, unsurpringly, worse than it could be, by about an order of magnitude.
+There are two major culprits of this, in my estimation. One, the function that
+constructs eye rays is doing much more work than it could be doing.
+Two, none of the heavy lifting (raycasting itself) is parallelized beyond simple
+multithreading. Many vector functions (magnitude, dot product, etc) could be easily parallelized with SIMD instructions, and so could the raycast functions.
+
+I believe these two areas for improvement could net a very significant increase in performance, and could likely get very close to the ideal performance.
