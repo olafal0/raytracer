@@ -14,7 +14,7 @@ int main(int argc, char* argv[]) {
     return 0;
   }
   int nSpheres = atoi(argv[1]);
-  int iterations = 100;
+  int iterations = 10;
   // make a 512x512 image
   uint w, h;
   w = 1920;
@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
   elapsed_seconds = end-start;
   std::cout << (elapsed_seconds.count()*1000.0/iterations) << "\n";
 
-  //show("Sample image", rgba, w, h);
+  show("Sample image", rgba, w, h);
 
   delete[] s;
   delete[] rgba;

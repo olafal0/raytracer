@@ -1,7 +1,7 @@
-CFLAGS=-std=c++14 -march=native -Wall -lSDL -fopenmp -O3
+CFLAGS=-std=c++14 -march=native -Wall -fopenmp -O3
 
 all: raytrace.o lodepng.o imshow.o vecmath.o
-	g++ $(CFLAGS) -o raytrace.out raytrace.o lodepng.o imshow.o vecmath.o
+	g++ $(CFLAGS) -o raytrace.out raytrace.o lodepng.o imshow.o vecmath.o -lSDL
 
 %.o: %.cpp
 	g++ $(CFLAGS) -c $< $!
