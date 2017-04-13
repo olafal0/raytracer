@@ -39,44 +39,44 @@ public:
   float distance;
 };
 
-class sphere {
-public:
-  vec3 pos;
-  float rad;
-  sphere () {
-    pos = vec3(0,0,0);
-    rad = 0.5;
-  };
-};
+// class sphere {
+// public:
+//   vec3 pos;
+//   float rad;
+//   sphere () {
+//     pos = vec3(0,0,0);
+//     rad = 0.5;
+//   };
+// };
 
-class spherelist {
-private:
-  int cur, size;
-  float *px, *py, *pz, *rad;
-public:
-  spherelist(int sz) {
-    px = (float*)calloc(size,sizeof(float));
-    py = (float*)calloc(size,sizeof(float));
-    pz = (float*)calloc(size,sizeof(float));
-    rad = (float*)calloc(size,sizeof(float));
-    cur = 0;
-    size = sz;
-  }
-  inline void setPos(int i, float x, float y, float z) {
-    px[i] = x;
-    py[i] = y;
-    pz[i] = z;
-  }
-  inline void setRad(int i, float r) {
-    rad[i] = r;
-  }
-  ~spherelist () {
-    free(px);
-    free(py);
-    free(pz);
-    free(rad);
-  }
-};
+// class spherelist {
+// private:
+//   int cur, size;
+//   float *px, *py, *pz, *rad;
+// public:
+//   spherelist(int sz) {
+//     px = (float*)calloc(size,sizeof(float));
+//     py = (float*)calloc(size,sizeof(float));
+//     pz = (float*)calloc(size,sizeof(float));
+//     rad = (float*)calloc(size,sizeof(float));
+//     cur = 0;
+//     size = sz;
+//   }
+//   inline void setPos(int i, float x, float y, float z) {
+//     px[i] = x;
+//     py[i] = y;
+//     pz[i] = z;
+//   }
+//   inline void setRad(int i, float r) {
+//     rad[i] = r;
+//   }
+//   ~spherelist () {
+//     free(px);
+//     free(py);
+//     free(pz);
+//     free(rad);
+//   }
+// };
 
 struct ray {
 public:
@@ -86,11 +86,10 @@ public:
 
 // represents a combination camera/screen
 class view {
-private:
+public:
   float fovrad;
   float fovtan;
   float fovtanAspect;
-public:
   vec3 pos;
   vec3 fwd;
   float aspectRatio = 1; // width / height
