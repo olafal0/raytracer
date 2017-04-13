@@ -39,12 +39,6 @@ public:
   float distance;
 };
 
-struct ray {
-public:
-  vec3 origin, direction;
-  bool castAgainst(const sphere, rayhit*);
-};
-
 class sphere {
 public:
   vec3 pos;
@@ -53,6 +47,41 @@ public:
     pos = vec3(0,0,0);
     rad = 0.5;
   };
+};
+
+class spherelist {
+private:
+  int cur, size;
+  float *px, *py, *pz, *rad;
+public:
+  spherelist(int sz) {
+    px = (float*)calloc(size,sizeof(float));
+    py = (float*)calloc(size,sizeof(float));
+    pz = (float*)calloc(size,sizeof(float));
+    rad = (float*)calloc(size,sizeof(float));
+    cur = 0;
+    size = sz;
+  }
+  inline void setPos(int i, float x, float y, float z) {
+    px[i] = x;
+    py[i] = y;
+    pz[i] = z;
+  }
+  inline void setRad(int i, float r) {
+    rad[i] = r;
+  }
+  ~spherelist () {
+    free(px);
+    free(py);
+    free(pz);
+    free(rad);
+  }
+};
+
+struct ray {
+public:
+  vec3 origin, direction;
+  //bool castAgainst(spherelist, int, rayhit*);
 };
 
 // represents a combination camera/screen
