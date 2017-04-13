@@ -12,33 +12,6 @@ vec3::vec3 (float vx,float vy,float vz) {
   z = vz;
 }
 
-// returns the magnitude of this vector
-float vec3::magnitude() {
-  return sqrt(x*x+y*y+z*z);
-}
-
-float vec3::sqrMagnitude() {
-  return x*x+y*y+z*z;
-}
-
-// returns a new vec3 with a length of 1
-vec3 vec3::normalized() {
-  vec3 v;
-  float m = magnitude();
-  v.x = x/m;
-  v.y = y/m;
-  v.z = z/m;
-  return v;
-}
-
-// sets x, y, and z so this vector has a length of 1
-void vec3::makeNormalized() {
-  float m = magnitude();
-  x = x/m;
-  y = y/m;
-  z = z/m;
-}
-
 vec3& vec3::operator= (const vec3& rhs) {
   x = rhs.x;
   y = rhs.y;

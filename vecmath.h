@@ -1,4 +1,5 @@
 #include <cmath>
+#include "immintrin.h"
 
 class vec3;
 class sphere;
@@ -11,10 +12,18 @@ public:
   float x, y, z;
   vec3();
   vec3(float,float,float);
-  float magnitude();
-  float sqrMagnitude();
-  vec3 normalized();
-  void makeNormalized();
+  inline float magnitude() { return sqrt(x*x+y*y+z*z); }
+  inline float sqrMagnitude() { return x*x+y*y+z*z; };
+  inline vec3 normalized() {
+    float m = magnitude();
+    return vec3(x/m,y/m,z/m);
+  };
+  inline void makeNormalized() {
+    float m = magnitude();
+    x = x/m;
+    y = y/m;
+    z = z/m;
+  };
   void rotateAroundX(float degrees);
   void rotateAroundY(float degrees);
   float dot(const vec3 rhs);
@@ -44,11 +53,9 @@ class sphere {
 public:
   vec3 pos;
   float rad;
-  unsigned int rgba;
   sphere () {
     pos = vec3(0,0,0);
     rad = 0.5;
-    rgba = 0xffffffff;
   };
 };
 

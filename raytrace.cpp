@@ -30,8 +30,11 @@ int main(int argc, char* argv[]) {
   sphere *s = new sphere[nSpheres];
   for (int i=0; i<nSpheres; i++) {
     s[i] = sphere();
-    s[i].pos = vec3(0,0,0);
-    s[i].rad = 1;
+    s[i].pos = vec3();
+    s[i].pos.x = ((i%2)*2-1)*0.05*i;
+    s[i].pos.y = (((i/2)%2)*2-1)*0.05*i;
+    s[i].pos.z = i*0.1;
+    s[i].rad = 0.5;
   }
 
   std::chrono::time_point<std::chrono::system_clock> start, end;
@@ -62,7 +65,7 @@ int main(int argc, char* argv[]) {
   elapsed_seconds = end-start;
   std::cout << (elapsed_seconds.count()*1000.0/iterations) << "\n";
 
-  //show("Sample image", rgba, w, h);
+  show("Sample image", rgba, w, h);
 
   delete[] s;
   delete[] rgba;
