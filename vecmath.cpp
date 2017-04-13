@@ -102,10 +102,12 @@ bool ray::castAgainst(const sphere s, rayhit *hit) {
   }
 
   float d = -dotProduct - sqrt(importantPart);
-  hit->point.x = x[1] + x[0]*d;
-  hit->point.y = y[1] + y[0]*d;
-  hit->point.z = z[1] + z[0]*d;
-  hit->normal = (s.pos - hit->point).normalized();
+  // this is slower:
+  // hit->point.x = x[1] + x[0]*d;
+  // hit->point.y = y[1] + y[0]*d;
+  // hit->point.z = z[1] + z[0]*d;
+  hit->point = origin + direction*d;
+  hit->normal = (s.pos - hit->point) * (1.0/s.rad);
   hit->distance = d;
   return true;
 }
