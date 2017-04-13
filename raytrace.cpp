@@ -1,5 +1,6 @@
 #include <iostream>
 #include <chrono>
+#include <cfloat>
 #include <omp.h>
 #include "imshow.h"
 #include "vecmath.h"
@@ -14,7 +15,7 @@ int main(int argc, char* argv[]) {
     return 0;
   }
   int nSpheres = atoi(argv[1]);
-  int iterations = 100;
+  int iterations = 1;
   // make a 512x512 image
   uint w, h;
   w = 1920;
@@ -73,27 +74,22 @@ int main(int argc, char* argv[]) {
 
 void getColorAtPixel (ray r, sphere *s, int numSpheres, unsigned char color[]) {
   // find the closest hit
-  rayhit bestHit;
-  bestHit.hitSomething = false;
+  rayhit bestHit, hit;
+  bool gotBestHit;
+  bestHit.distance = FLT_MAX;
   for (int i=0; i<numSpheres; i++) {
-    rayhit hit = r.castAgainst(s[i]);
-    if (hit) {
-      if (bestHit) {
-        if (hit.distance < bestHit.distance) {
-          bestHit = hit;
-        }
-      } else {
+    if (r.castAgainst(s[i],&hit)) {
+      if (hit.distance < bestHit.distance) {
         bestHit = hit;
+        gotBestHit = true;
       }
     }
   }
-  unsigned char pixvalue;
-  if (bestHit) {
+  unsigned char pixvalue = 0;
+  if (gotBestHit) {
     float normalDot = -bestHit.normal.dot(vec3(0,0,-1));
     if (normalDot<0) normalDot = 0;
     pixvalue = (normalDot)*255;
-  } else {
-    pixvalue = 0;
   }
   color[0] = pixvalue;
   color[1] = pixvalue;

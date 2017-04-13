@@ -37,16 +37,12 @@ struct rayhit {
 public:
   vec3 point, normal;
   float distance;
-  bool hitSomething;
-  explicit operator bool() const {
-    return hitSomething;
-  }
 };
 
 struct ray {
 public:
   vec3 origin, direction;
-  rayhit castAgainst(const sphere);
+  bool castAgainst(const sphere, rayhit*);
 };
 
 class sphere {
