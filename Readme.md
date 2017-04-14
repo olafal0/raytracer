@@ -31,15 +31,26 @@ The estimated performance, in milliseconds taken to render a 1920x1080 image:
 
 ![](expected-raytrace-perf.png)
 
-## Real Performance measurement
-This is the measured performance, in milliseconds per 1920x1080 image, compared to the theoretical best:
-
+## Real Performance measurement (Updated)
+This is the graph, showing expected performance, and actual performance of three different versions of the program.
 ![](actual-raytrace-perf.png)
 
-Performance is, unsurpringly, worse than it could be, by about an order of magnitude.
-There are two major culprits of this, in my estimation. One, the function that
-constructs eye rays is doing much more work than it could be doing.
-Two, none of the heavy lifting (raycasting itself) is parallelized beyond simple
-multithreading. Many vector functions (magnitude, dot product, etc) could be easily parallelized with SIMD instructions, and so could the raycast functions.
+The blue line is the measured performance of the original implementation, in milliseconds per 1920x1080 image, compared to the theoretical best.
 
-I believe these two areas for improvement could net a very significant increase in performance, and could likely get very close to the ideal performance.
+The inlined version represents the improvement gained by inlining many functions, especially vector functions.
+
+The SoA version replaces the previous method of calling ray::castAgainst(sphere) with a more streamlined version.
+The major optimization here is that sphere objects are no longer necessary. Instead, arrays of positions (px, py, and pz)
+are used to represent the spheres. This makes memory accesses more predictable and closer together, since it is so common
+to do operations like x1\*x2 + y1\*y2. In addition, there is no longer a seperate function for casting against a sphere.
+Rays are cast against all spheres in a row inside of the getColorAtPixel function.
+
+This is a graph comparing three versions of my implementation:
+
+![](implementation-compare.png)
+
+Clearly, performance has gotten significantly better―1000 spheres has gone from almost 900ms to 315ms.
+However, this is still short of the theoretical max, which is about 43ms.
+I'm not quite sure which improvements should be made next. It seems likely that vectorization through AVX
+is slower than it could be if it were made explicit. Additionally, many spheres could be skipped altogether
+with more clever checking (which means it could be possible to exceed max performance).
