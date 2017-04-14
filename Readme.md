@@ -33,7 +33,7 @@ The estimated performance, in milliseconds taken to render a 1920x1080 image:
 
 ## Real Performance measurement (Updated)
 This is the graph, showing expected performance, and actual performance of three different versions of the program.
-![](actual-raytrace-perf.png)
+![](perfdata/actual-raytrace-perf.png)
 
 The blue line is the measured performance of the original implementation, in milliseconds per 1920x1080 image, compared to the theoretical best.
 
@@ -47,7 +47,7 @@ Rays are cast against all spheres in a row inside of the getColorAtPixel functio
 
 This is a graph comparing three versions of my implementation:
 
-![](implementation-compare.png)
+![](perfdata/implementation-compare.png)
 
 Clearly, performance has gotten significantly better―1000 spheres has gone from almost 900ms to 315ms.
 However, this is still short of the theoretical max, which is about 43ms.
