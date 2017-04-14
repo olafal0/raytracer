@@ -50,15 +50,15 @@ int main(int argc, char* argv[]) {
     for (uint vy=0; vy<h; vy++) {
       uint coord = (vy*w)*4;
       ray r;
-      vec3 dir;
       r.origin = cam.pos;
-      dir.y = ((float)cam.h-2*vy) / ((float)cam.h) * cam.fovtanAspect;
-      dir.z = 1;
+      // dir.y = ((float)cam.h-2*vy) / ((float)cam.h) * cam.fovtanAspect;
+      // dir.z = 1;
       for (uint vx=0; vx<w; vx++) {
         coord += 4;
-        dir.x = (2*vx-(float)cam.w) / ((float)cam.w) * cam.fovtan;
-        //r.direction.x = (float)(2*vx-cam.w) * viewXmod;
-        r.direction = dir.normalized();
+        // dir.x = (2*vx-(float)cam.w) / ((float)cam.w) * cam.fovtan;
+        // //r.direction.x = (float)(2*vx-cam.w) * viewXmod;
+        // r.direction = dir.normalized();
+        r = cam.getRayForPixel(vx,vy);
 
         // direction, origin, s.pos
         float x[2], y[2], z[2];
