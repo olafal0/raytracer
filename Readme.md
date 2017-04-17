@@ -45,11 +45,13 @@ are used to represent the spheres. This makes memory accesses more predictable a
 to do operations like x1\*x2 + y1\*y2. In addition, there is no longer a seperate function for casting against a sphere.
 Rays are cast against all spheres in a row inside of the getColorAtPixel function.
 
-This is a graph comparing three versions of my implementation:
+The pipelined version changes how the code is written to make it easier for the compiler to properly vectorize it. This was a significant improvement.
+
+This is a graph comparing the versions of my implementation:
 
 ![](perfdata/implementation-compare.png)
 
-Clearly, performance has gotten significantly better―1000 spheres has gone from almost 900ms to 315ms.
+Clearly, performance has gotten significantly better―1000 spheres has gone from almost 900ms to 315ms (and now 140ms with pipelining).
 However, this is still short of the theoretical max, which is about 43ms.
 I'm not quite sure which improvements should be made next. It seems likely that vectorization through AVX
 is slower than it could be if it were made explicit. Additionally, many spheres could be skipped altogether
