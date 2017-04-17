@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
     return 0;
   }
   int nSpheres = atoi(argv[1]);
-  int iterations = 100;
+  int iterations = 10;
   // make a 512x512 image
   uint w, h;
   w = 1920;
@@ -100,14 +100,29 @@ void getColorAtPixel (float *px, float *py, float *pz, float *rad, ray r, int nu
     //     gotBestHit = true;
     //   }
     // }
+
+    /*
+    For each 8 spheres:
+    pvx = px[i:i+7]
+    pvy = py[i:i+7]
+    pvz = pz[i:i+7]
+    _mm_set1_ps(x[0])
+    _mm_set1_ps(y[0])
+    _mm_set1_ps(z[0])
+    _mm_set1_ps(x[1])
+    _mm_set1_ps(y[1])
+    _mm_set1_ps(z[1])
+    __mm256 distances
+    __mm256 dotProducts
+    */
     
     // math stolen from Wikipedia (en.wikipedia.org/wiki/Line–sphere_intersection)
     //float dotProduct = direction.dot(origin-s.pos);
-    float dotProduct = x[0]*(x[1]-px[i]) + y[0]*(y[1]-py[i]) + z[0]*(z[1]-pz[i]);
     //float distanceBetweenSqr = (origin-s.pos).sqrMagnitude();
     float distanceBetweenX = x[1]-px[i];
     float distanceBetweenY = y[1]-py[i];
     float distanceBetweenZ = z[1]-pz[i];
+    float dotProduct = x[0]*(distanceBetweenX) + y[0]*(distanceBetweenY) + z[0]*(distanceBetweenZ);
     float distanceBetweenSqr = distanceBetweenX*distanceBetweenX + distanceBetweenY*distanceBetweenY + distanceBetweenZ*distanceBetweenZ;
     float importantPart = dotProduct*dotProduct - distanceBetweenSqr + rad[i]*rad[i];
     if (importantPart < 0) {
