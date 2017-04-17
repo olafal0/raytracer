@@ -12,33 +12,6 @@ vec3::vec3 (float vx,float vy,float vz) {
   z = vz;
 }
 
-// returns the magnitude of this vector
-float vec3::magnitude() {
-  return sqrt(x*x+y*y+z*z);
-}
-
-float vec3::sqrMagnitude() {
-  return x*x+y*y+z*z;
-}
-
-// returns a new vec3 with a length of 1
-vec3 vec3::normalized() {
-  vec3 v;
-  float m = magnitude();
-  v.x = x/m;
-  v.y = y/m;
-  v.z = z/m;
-  return v;
-}
-
-// sets x, y, and z so this vector has a length of 1
-void vec3::makeNormalized() {
-  float m = magnitude();
-  x = x/m;
-  y = y/m;
-  z = z/m;
-}
-
 vec3& vec3::operator= (const vec3& rhs) {
   x = rhs.x;
   y = rhs.y;
@@ -102,21 +75,39 @@ ray view::getRayForPixel(int x, int y) {
 }
 
 // 15 mult 21 add 1 branch 2 sqrt
-rayhit ray::castAgainst(const sphere s) {
-  rayhit hit;
-  // math stolen from Wikipedia (en.wikipedia.org/wiki/Line–sphere_intersection)
-  float dotProduct = direction.dot(origin-s.pos);
-  float distanceBetweenSqr = (origin-s.pos).sqrMagnitude();
-  float importantPart = dotProduct*dotProduct - distanceBetweenSqr + s.rad*s.rad;
-  if (importantPart < 0) {
-    hit.hitSomething = false;
-    return hit;
-  } else {
-    hit.hitSomething = true;
-  }
-  float d = -dotProduct - sqrt(importantPart);
-  hit.point = origin + direction*d;
-  hit.normal = (s.pos - hit.point).normalized();
-  hit.distance = d;
-  return hit;
-}
+// bool ray::castAgainst(const spherelist s, int i, rayhit *hit) {
+//   // direction, origin, s.pos
+//   float x[3], y[3], z[3];
+//   x[0] = direction.x;
+//   x[1] = origin.x;
+//   x[2] = s.pos.x;
+//   y[0] = direction.y;
+//   y[1] = origin.y;
+//   y[2] = s.pos.y;
+//   z[0] = direction.z;
+//   z[1] = origin.z;
+//   z[2] = s.pos.z;
+  
+//   // math stolen from Wikipedia (en.wikipedia.org/wiki/Line–sphere_intersection)
+//   //float dotProduct = direction.dot(origin-s.pos);
+//   float dotProduct = x[0]*(x[1]-x[2]) + y[0]*(y[1]-y[2]) + z[0]*(z[1]-z[2]);
+//   //float distanceBetweenSqr = (origin-s.pos).sqrMagnitude();
+//   float distanceBetweenX = x[1]-x[2];
+//   float distanceBetweenY = y[1]-y[2];
+//   float distanceBetweenZ = z[1]-z[2];
+//   float distanceBetweenSqr = distanceBetweenX*distanceBetweenX + distanceBetweenY*distanceBetweenY + distanceBetweenZ*distanceBetweenZ;
+//   float importantPart = dotProduct*dotProduct - distanceBetweenSqr + s.rad*s.rad;
+//   if (importantPart < 0) {
+//     return false;
+//   }
+
+//   float d = -dotProduct - sqrt(importantPart);
+//   // this is slower:
+//   // hit->point.x = x[1] + x[0]*d;
+//   // hit->point.y = y[1] + y[0]*d;
+//   // hit->point.z = z[1] + z[0]*d;
+//   hit->point = origin + direction*d;
+//   hit->normal = (s.pos - hit->point) * (1.0/s.rad);
+//   hit->distance = d;
+//   return true;
+// }

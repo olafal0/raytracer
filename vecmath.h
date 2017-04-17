@@ -1,4 +1,5 @@
 #include <cmath>
+#include "immintrin.h"
 
 class vec3;
 class sphere;
@@ -11,10 +12,18 @@ public:
   float x, y, z;
   vec3();
   vec3(float,float,float);
-  float magnitude();
-  float sqrMagnitude();
-  vec3 normalized();
-  void makeNormalized();
+  inline float magnitude() { return sqrt(x*x+y*y+z*z); }
+  inline float sqrMagnitude() { return x*x+y*y+z*z; };
+  inline vec3 normalized() {
+    float m = magnitude();
+    return vec3(x/m,y/m,z/m);
+  };
+  inline void makeNormalized() {
+    float m = magnitude();
+    x = x/m;
+    y = y/m;
+    z = z/m;
+  };
   void rotateAroundX(float degrees);
   void rotateAroundY(float degrees);
   float dot(const vec3 rhs);
@@ -28,28 +37,51 @@ struct rayhit {
 public:
   vec3 point, normal;
   float distance;
-  bool hitSomething;
-  explicit operator bool() const {
-    return hitSomething;
-  }
-};
-
-struct ray {
-public:
-  vec3 origin, direction;
-  rayhit castAgainst(const sphere);
 };
 
 class sphere {
 public:
   vec3 pos;
   float rad;
-  unsigned int rgba;
   sphere () {
     pos = vec3(0,0,0);
     rad = 0.5;
-    rgba = 0xffffffff;
   };
+};
+
+class spherelist {
+private:
+  int cur, size;
+  float *px, *py, *pz, *rad;
+public:
+  spherelist(int sz) {
+    px = (float*)calloc(size,sizeof(float));
+    py = (float*)calloc(size,sizeof(float));
+    pz = (float*)calloc(size,sizeof(float));
+    rad = (float*)calloc(size,sizeof(float));
+    cur = 0;
+    size = sz;
+  }
+  inline void setPos(int i, float x, float y, float z) {
+    px[i] = x;
+    py[i] = y;
+    pz[i] = z;
+  }
+  inline void setRad(int i, float r) {
+    rad[i] = r;
+  }
+  ~spherelist () {
+    free(px);
+    free(py);
+    free(pz);
+    free(rad);
+  }
+};
+
+struct ray {
+public:
+  vec3 origin, direction;
+  //bool castAgainst(spherelist, int, rayhit*);
 };
 
 // represents a combination camera/screen
