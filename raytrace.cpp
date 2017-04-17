@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
 
 void getColorAtPixel (float *px, float *py, float *pz, float *rad, ray r, int numSpheres, unsigned char color[]) {
 
-  // direction, origin, s.pos
+  // direction, origin
   float x[2], y[2], z[2];
   x[0] = r.direction.x;
   x[1] = r.origin.x;
@@ -90,61 +90,78 @@ void getColorAtPixel (float *px, float *py, float *pz, float *rad, ray r, int nu
   z[1] = r.origin.z;
 
   // find the closest hit
-  rayhit bestHit, hit;
+  rayhit bestHit;
   bool gotBestHit = false;
   bestHit.distance = FLT_MAX;
-  for (int i=0; i<numSpheres; i++) {
-    // if (r.castAgainst(s,i,&hit)) {
-    //   if (hit.distance < bestHit.distance) {
-    //     bestHit = hit;
-    //     gotBestHit = true;
-    //   }
-    // }
+  for (int i=0; i<numSpheres; i+=8) {
+    float distancesX[8], distancesY[8], distancesZ[8];
+    float dotProducts[8], distancesSqr[8], importantParts[8], ds[8];
 
-    /*
-    For each 8 spheres:
-    pvx = px[i:i+7]
-    pvy = py[i:i+7]
-    pvz = pz[i:i+7]
-    _mm_set1_ps(x[0])
-    _mm_set1_ps(y[0])
-    _mm_set1_ps(z[0])
-    _mm_set1_ps(x[1])
-    _mm_set1_ps(y[1])
-    _mm_set1_ps(z[1])
-    __mm256 distances
-    __mm256 dotProducts
-    */
     
     // math stolen from Wikipedia (en.wikipedia.org/wiki/Line–sphere_intersection)
     //float dotProduct = direction.dot(origin-s.pos);
     //float distanceBetweenSqr = (origin-s.pos).sqrMagnitude();
-    float distanceBetweenX = x[1]-px[i];
-    float distanceBetweenY = y[1]-py[i];
-    float distanceBetweenZ = z[1]-pz[i];
-    float dotProduct = x[0]*(distanceBetweenX) + y[0]*(distanceBetweenY) + z[0]*(distanceBetweenZ);
-    float distanceBetweenSqr = distanceBetweenX*distanceBetweenX + distanceBetweenY*distanceBetweenY + distanceBetweenZ*distanceBetweenZ;
-    float importantPart = dotProduct*dotProduct - distanceBetweenSqr + rad[i]*rad[i];
-    if (importantPart < 0) {
-      continue;
+    #pragma omp simd
+    for (int j=0; j<8; j++) {
+      distancesX[j] = x[1] - px[i+j];
+      distancesY[j] = y[1] - py[i+j];
+      distancesZ[j] = z[1] - pz[i+j];
+
+      dotProducts[j] = x[0]*(distancesX[j]) + y[0]*(distancesY[j]) + z[0]*(distancesZ[j]);
+      distancesSqr[j] = distancesX[j]*distancesX[j] + distancesY[j]*distancesY[j] + distancesZ[j]*distancesZ[j];
+      importantParts[j] = dotProducts[j]*dotProducts[j] - distancesSqr[j] + rad[i+j]*rad[i+j];
+
+      
+
     }
 
-    float d = -dotProduct - sqrt(importantPart);
-    // this is slower:
-    // hit->point.x = x[1] + x[0]*d;
-    // hit->point.y = y[1] + y[0]*d;
-    // hit->point.z = z[1] + z[0]*d;
-    hit.point = r.origin + r.direction*d;
-    // hit->normal = (s.pos - hit->point) * (1.0/rad[i]);
-    hit.normal.x = (px[i] - hit.point.x) * (1.0/rad[i]);
-    hit.normal.y = (py[i] - hit.point.y) * (1.0/rad[i]);
-    hit.normal.z = (pz[i] - hit.point.z) * (1.0/rad[i]);
-    hit.distance = d;
+    for (int j=0; j<8; j++) {
+      if (importantParts[j] < 0) {
+        continue;
+      }
 
-    if (hit.distance < bestHit.distance) {
-      bestHit = hit;
-      gotBestHit = true;
+
+      ds[j] = -dotProducts[j] - sqrt(importantParts[j]);
+      if (ds[j] < bestHit.distance) {
+        bestHit.point = r.origin + r.direction*ds[j];
+        // hit->normal = (s.pos - hit->point) * (1.0/rad[i]);
+        bestHit.normal.y = (py[i+j] - bestHit.point.y) * (1.0/rad[i+j]);
+        bestHit.normal.x = (px[i+j] - bestHit.point.x) * (1.0/rad[i+j]);
+        bestHit.normal.z = (pz[i+j] - bestHit.point.z) * (1.0/rad[i+j]);
+        bestHit.distance = ds[j];
+
+        gotBestHit = true;
+
+
+      }
     }
+
+    // float distanceBetweenX = x[1]-px[i];
+    // float distanceBetweenY = y[1]-py[i];
+    // float distanceBetweenZ = z[1]-pz[i];
+    // float dotProduct = x[0]*(distanceBetweenX) + y[0]*(distanceBetweenY) + z[0]*(distanceBetweenZ);
+    // float distanceBetweenSqr = distanceBetweenX*distanceBetweenX + distanceBetweenY*distanceBetweenY + distanceBetweenZ*distanceBetweenZ;
+    // float importantPart = dotProduct*dotProduct - distanceBetweenSqr + rad[i]*rad[i];
+    // if (importantPart < 0) {
+    //   continue;
+    // }
+
+    // float d = -dotProduct - sqrt(importantPart);
+    // // this is slower:
+    // // hit->point.x = x[1] + x[0]*d;
+    // // hit->point.y = y[1] + y[0]*d;
+    // // hit->point.z = z[1] + z[0]*d;
+    // hit.point = r.origin + r.direction*d;
+    // // hit->normal = (s.pos - hit->point) * (1.0/rad[i]);
+    // hit.normal.x = (px[i] - hit.point.x) * (1.0/rad[i]);
+    // hit.normal.y = (py[i] - hit.point.y) * (1.0/rad[i]);
+    // hit.normal.z = (pz[i] - hit.point.z) * (1.0/rad[i]);
+    // hit.distance = d;
+
+    // if (hit.distance < bestHit.distance) {
+    //   bestHit = hit;
+    //   gotBestHit = true;
+    // }
 
   }
   unsigned char pixvalue = 0;
