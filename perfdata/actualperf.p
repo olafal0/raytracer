@@ -14,7 +14,8 @@ plot ((35*x*1920*1080)/1700000000) title 'ms total, FLOP bound (1920x1080)', \
 "performance-original.dat" using 1:2 w linespoints title 'ms, original', \
 "performance-inline.dat" using 1:2 w linespoints title 'ms, inlined', \
 "performance-soa.dat" using 1:2 w linespoints title 'ms, SoA', \
-"performance-pipelined.dat" using 1:2 w linespoints title 'ms, pipelined'
+"performance-pipelined.dat" using 1:2 w linespoints title 'ms, pipelined', \
+"performance-gpu1.dat" using 1:2 w linespoints title 'ms, GPU'
 
 
 reset
@@ -22,4 +23,5 @@ set output 'implementation-compare.png'
 plot "performance-original.dat" using 1:2 w linespoints title 'ms, original', \
 "performance-inline.dat" using 1:2 w linespoints title 'ms, inlined', \
 "performance-soa.dat" using 1:2 w linespoints title 'ms, SoA', \
-"performance-pipelined.dat" using 1:2 w linespoints title 'ms, pipelined'
+"performance-pipelined.dat" using 1:2 w linespoints title 'ms, pipelined', \
+"performance-gpu1.dat" using 1:2 w linespoints title 'ms, GPU'
