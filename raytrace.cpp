@@ -147,8 +147,8 @@ void getColorAtPixel (float *px, float *py, float *pz, float *rad, ray r, int nu
     if (ds[j] < bestHit.distance) {
       bestHit.point = r.origin + r.direction*ds[j];
       // hit->normal = (s.pos - hit->point) * (1.0/rad[i]);
-      bestHit.normal.y = (py[i+j] - bestHit.point.y) * (1.0/rad[i+j]);
-      bestHit.normal.x = (px[i+j] - bestHit.point.x) * (1.0/rad[i+j]);
+      //bestHit.normal.y = (py[i+j] - bestHit.point.y) * (1.0/rad[i+j]);
+      //bestHit.normal.x = (px[i+j] - bestHit.point.x) * (1.0/rad[i+j]);
       bestHit.normal.z = (pz[i+j] - bestHit.point.z) * (1.0/rad[i+j]);
       bestHit.distance = ds[j];
       gotBestHit = true;
@@ -157,7 +157,7 @@ void getColorAtPixel (float *px, float *py, float *pz, float *rad, ray r, int nu
 
   unsigned char pixvalue = 0;
   if (gotBestHit) {
-    float normalDot = -bestHit.normal.dot(vec3(0,0,-1));
+    float normalDot = bestHit.normal.z;
     if (normalDot<0) normalDot = 0;
     pixvalue = (normalDot)*255;
   }
