@@ -40,8 +40,8 @@ void getColorAtPixel (int startIdx, int w, int h, float fovtan, float fovtanAspe
   float distanceX, distanceY, distanceZ, dotProduct, distanceSqr, importantPart, d;
 
   float bestDist =  FLT_MAX;
+  int bestHitSphere = -1;
   v3 bestPt, bestNorm;
-  bool gotBestHit = false;
 
   for (int i=0; i<numSpheres; i++) {
     distanceX = origx - px[i];
@@ -54,21 +54,20 @@ void getColorAtPixel (int startIdx, int w, int h, float fovtan, float fovtanAspe
 
     d = -dotProduct - sqrtf(importantPart);
     if (d < bestDist) {
-      bestPt.x = origx + dirx*d;
-      bestPt.y = origy + diry*d;
-      bestPt.z = origz + dirz*d;
-      //bestNorm.y = (py[i] - bestPt.y) * (1.0/rad[i]);
-      //bestNorm.x = (px[i] - bestPt.x) * (1.0/rad[i]);
-      bestNorm.z = (pz[i] - bestPt.z) * (1.0/rad[i]);
       bestDist = d;
-
-      gotBestHit = true;
+      bestHitSphere = i;
     }
   }
 
 
   unsigned char pixvalue = 0;
-  if (gotBestHit) {
+  if (bestHitSphere >= 0) {
+    bestPt.x = origx + dirx*bestDist;
+    bestPt.y = origy + diry*bestDist;
+    bestPt.z = origz + dirz*bestDist;
+    //bestNorm.y = (py[i] - bestPt.y) * (1.0/rad[i]);
+    //bestNorm.x = (px[i] - bestPt.x) * (1.0/rad[i]);
+    bestNorm.z = (pz[bestHitSphere] - bestPt.z) * (1.0/rad[bestHitSphere]);
     float normalDot = bestNorm.z;
     if (normalDot<0) normalDot = 0;
     pixvalue = (normalDot)*255;
