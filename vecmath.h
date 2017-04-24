@@ -7,6 +7,10 @@ class view;
 struct ray;
 struct rayhit;
 
+struct v3 {
+  float x, y, z;
+};
+
 class vec3 {
 public:
   float x, y, z;
@@ -86,11 +90,10 @@ public:
 
 // represents a combination camera/screen
 class view {
-private:
+public:
   float fovrad;
   float fovtan;
   float fovtanAspect;
-public:
   vec3 pos;
   vec3 fwd;
   float aspectRatio = 1; // width / height
