@@ -5,7 +5,7 @@
 #include "imshow.h"
 #include "vecmath.h"
 
-// thanks go to Lode Vandevenne for the LodePNG library and examples
+// thanks go to Lode Vandevenne for the LodePNG examples
 
 void getColorAtPixel (float *px, float *py, float *pz, float *rad, ray r, int numSpheres, unsigned char color[]);
 

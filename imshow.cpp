@@ -97,27 +97,3 @@ int show(const std::string& caption, const unsigned char* rgba, unsigned w, unsi
   SDL_Quit();
   return done == 2 ? 1 : 0;
 }
-
-/*shows image with SDL. Returns 1 if user wants to fully quit, 0 if user wants to see next image.*/
-int showfile(const char* filename)
-{
-  std::cout << "showing " << filename << std::endl;
-
-  std::vector<unsigned char> buffer, image;
-  lodepng::load_file(buffer, filename); //load the image file with given filename
-  unsigned w, h;
-  unsigned error = lodepng::decode(image, w, h, buffer); //decode the png
-
-  //stop if there is an error
-  if(error)
-  {
-    std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-    return 0;
-  }
-
-  return show(filename, &image[0], w, h);
-}
-
-// example modified below this line (Daniel Lawrence)
-
-/*displays raw image data*/
