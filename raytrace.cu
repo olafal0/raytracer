@@ -16,67 +16,75 @@
 __global__
 void getColorAtPixel (int startIdx, int w, int h, float fovtan, float fovtanAspect, v3 origin, unsigned char *rgba, float *px, float *py, float *pz, float *rad, int numSpheres) {
   int idx = (threadIdx.x + blockIdx.x * blockDim.x) + startIdx;
-  if (idx > w*h) return;
+  for (idx; idx < w*h; idx += blockDim.x*gridDim.x) {
 
-  // get pixel coords
-  int x = idx % w;
-  int y = idx / w;
+    // get pixel coords
+    int x = idx % w;
+    int y = idx / w;
 
-  // get normalized ray direction
-  float dirx, diry, dirz;
-  dirx = (2*x-(float)w) / ((float)w) * fovtan;
-  diry = ((float)h-2*y) / ((float)h) * fovtanAspect;
-  dirz = 1;
-  float magn = sqrtf(dirx*dirx + diry*diry + dirz*dirz);
-  dirx /= magn;
-  diry /= magn;
-  dirz /= magn;
+    // get normalized ray direction
+    float dirx, diry, dirz;
+    dirx = (2*x-(float)w) / ((float)w) * fovtan;
+    diry = ((float)h-2*y) / ((float)h) * fovtanAspect;
+    dirz = 1;
+    float magn = sqrtf(dirx*dirx + diry*diry + dirz*dirz);
+    dirx /= magn;
+    diry /= magn;
+    dirz /= magn;
 
-  float origx, origy, origz;
-  origx = origin.x;
-  origy = origin.y;
-  origz = origin.z;
+    float origx, origy, origz;
+    origx = origin.x;
+    origy = origin.y;
+    origz = origin.z;
 
-  float distanceX, distanceY, distanceZ, dotProduct, distanceSqr, importantPart, d;
+    float distanceX, distanceY, distanceZ, dotProduct, distanceSqr, importantPart, d;
 
-  float bestDist =  FLT_MAX;
-  int bestHitSphere = -1;
-  v3 bestPt, bestNorm;
+    float bestDist =  FLT_MAX;
+    int bestHitSphere = -1;
+    v3 bestPt, bestNorm;
 
-  for (int i=0; i<numSpheres; i++) {
-    distanceX = origx - px[i];
-    distanceY = origy - py[i];
-    distanceZ = origz - pz[i];
+    /*
+      Accesses for this thread:
+      p{x,y,z}[0..n]
+      rad[0..n]
+      then write to rgba[idx*4..idx*4+4]
+    */
 
-    dotProduct = dirx*(distanceX) + diry*(distanceY) + dirz*(distanceZ);
-    distanceSqr = distanceX*distanceX + distanceY*distanceY + distanceZ*distanceZ;
-    importantPart = dotProduct*dotProduct - distanceSqr + rad[i]*rad[i];
+    for (int i=0; i<numSpheres; i++) {
+      distanceX = origx - px[i];
+      distanceY = origy - py[i];
+      distanceZ = origz - pz[i];
 
-    d = -dotProduct - sqrtf(importantPart);
-    if (d < bestDist) {
-      bestDist = d;
-      bestHitSphere = i;
+      dotProduct = dirx*(distanceX) + diry*(distanceY) + dirz*(distanceZ);
+      distanceSqr = distanceX*distanceX + distanceY*distanceY + distanceZ*distanceZ;
+      importantPart = dotProduct*dotProduct - distanceSqr + rad[i]*rad[i];
+
+      d = -dotProduct - sqrtf(importantPart);
+      if (d < bestDist) {
+        bestDist = d;
+        bestHitSphere = i;
+      }
     }
-  }
 
 
-  unsigned char pixvalue = 0;
-  if (bestHitSphere >= 0) {
-    bestPt.x = origx + dirx*bestDist;
-    bestPt.y = origy + diry*bestDist;
-    bestPt.z = origz + dirz*bestDist;
-    //bestNorm.y = (py[i] - bestPt.y) * (1.0/rad[i]);
-    //bestNorm.x = (px[i] - bestPt.x) * (1.0/rad[i]);
-    bestNorm.z = (pz[bestHitSphere] - bestPt.z) * (1.0/rad[bestHitSphere]);
-    float normalDot = bestNorm.z;
-    if (normalDot<0) normalDot = 0;
-    pixvalue = (normalDot)*255;
+    unsigned char pixvalue = 0;
+    if (bestHitSphere >= 0) {
+      bestPt.x = origx + dirx*bestDist;
+      bestPt.y = origy + diry*bestDist;
+      bestPt.z = origz + dirz*bestDist;
+      //bestNorm.y = (py[i] - bestPt.y) * (1.0/rad[i]);
+      //bestNorm.x = (px[i] - bestPt.x) * (1.0/rad[i]);
+      bestNorm.z = (pz[bestHitSphere] - bestPt.z) * (1.0/rad[bestHitSphere]);
+      float normalDot = bestNorm.z;
+      if (normalDot<0) normalDot = 0;
+      pixvalue = (normalDot)*255;
+    }
+    int pixidx = idx*4;
+    rgba[pixidx+0] = pixvalue;
+    rgba[pixidx+1] = pixvalue;
+    rgba[pixidx+2] = pixvalue;
+    rgba[pixidx+3] = 255;
   }
-  int pixidx = idx*4;
-  rgba[pixidx+0] = pixvalue;
-  rgba[pixidx+1] = pixvalue;
-  rgba[pixidx+2] = pixvalue;
-  rgba[pixidx+3] = 255;
 }
 
 void errorCheck (int errorCode) {
@@ -155,9 +163,9 @@ int main(int argc, char* argv[]) {
   orig.z = cam.pos.z;
 
   for (int iter=0; iter<iterations; iter++) {
-    for (int i=0; i<sz; i+=CHUNK_SIZE) {
+    //for (int i=0; i<CHUNK_SIZE; i++) {
       getColorAtPixel<<<NUM_BLOCKS, THREADS_PER_BLOCK>>>(i,w,h,fvtan,fvtanAsp,orig,drgba,dpx,dpy,dpz,drad,nSpheres);
-    }
+    //ea}
     cudaDeviceSynchronize();
     errorCheck(cudaGetLastError());
     
