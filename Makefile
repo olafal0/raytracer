@@ -1,5 +1,5 @@
 CFLAGS=-std=c++11 -march=native -Wall -fopenmp -O3
-NVFLAGS=-std=c++11 -O3
+NVFLAGS=-std=c++11 -O3 -arch compute_30 -code sm_30,sm_37
 
 all: raytrace.o imshow.o vecmath.o
 	g++ $(CFLAGS) -o raytrace.out raytrace.o imshow.o vecmath.o -lSDL
@@ -24,5 +24,5 @@ prof: raytrace.pg.o lodepng.pg.o imshow.pg.o vecmath.pg.o
 
 asm: raytrace.S vecmath.S
 
-cuda: raytrace.cuda.o lodepng.o imshow.o vecmath.o
-	nvcc $(NVFLAGS) -o raytracecu.out raytrace.o lodepng.o imshow.o vecmath.o -lSDL
+cuda: raytrace.cuda.o imshow.o vecmath.o
+	nvcc $(NVFLAGS) -o raytracecu.out raytrace.o imshow.o vecmath.o -lSDL

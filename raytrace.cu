@@ -6,21 +6,52 @@
 #include "imshow.h"
 #include "vecmath.h"
 
-#define THREADS_PER_BLOCK 512
-#define NUM_BLOCKS 512
-#define CHUNK_SIZE (THREADS_PER_BLOCK*NUM_BLOCKS)
+// for GTX 760:
+// 1024 threads per block
+// 2048 threads per SM
+// 16 blocks per SM
+// 6 SMs
 
-// thanks go to Lode Vandevenne for the LodePNG library and examples
+#define THREADS_PER_BLOCK 1024
+#define NUM_BLOCKS 16*6
+#define CHUNK_SIZE (THREADS_PER_BLOCK*NUM_BLOCKS)
+// use WARPS_PER_BLOCK to set blockDim.y, warpSize to set blockDim.x
+#define WARPS_PER_BLOCK (THREADS_PER_BLOCK/32)
+
+// thanks go to Lode Vandevenne for the LodePNG examples
+
+// each warp (each 32 threads) is reponsible for one pixel
+// pixel id = threadIdx.y + blockIdx.x * blockDim.x
+// threadIdx.x is id (0..31) of thread in the warp for that pixel
+// each thread should perform a warp-stride loop over sphere list and find its best match
+// then, log2(32)=5 loops of warp shuffles to reduce values,
+// until threadIdx.x=0 has the closest hit sphere
 
 // kernel function should take a pixel, construct a ray for it, and cast against all spheres in the scene
 __global__
-void getColorAtPixel (int startIdx, int w, int h, float fovtan, float fovtanAspect, v3 origin, unsigned char *rgba, float *px, float *py, float *pz, float *rad, int numSpheres) {
-  int idx = (threadIdx.x + blockIdx.x * blockDim.x) + startIdx;
-  for (idx; idx < w*h; idx += blockDim.x*gridDim.x) {
+void getColorAtPixel (int w, int h, float fovtan, float fovtanAspect, v3 origin, unsigned char *rgba, float *sphereList, int numSpheres) {
+  // copy the whole sphere list into shared memory
+  // this requires 16KiB per block for 1000 spheres, and more than 1000 spheres is not yet handled
+  extern __shared__ float spheres[];
+  for (int i=threadIdx.x+(threadIdx.y*blockDim.x);i<numSpheres*4;i+=blockDim.x*blockDim.y) {
+    spheres[i] = sphereList[i];
+  }
+  __syncthreads();
+  float *px = &spheres[0];
+  float *py = &spheres[numSpheres];
+  float *pz = &spheres[numSpheres*2];
+  float *rad = &spheres[numSpheres*3];
+  // 2D grid and 3D block
+  // check which threads are in the same warp
+  int idx = (threadIdx.y + blockIdx.x * blockDim.y);
+  for (; idx < w*h; idx += blockDim.y*gridDim.x) {
 
     // get pixel coords
     int x = idx % w;
     int y = idx / w;
+
+    // find out which thread in the warp we are
+    int wid = threadIdx.x;
 
     // get normalized ray direction
     float dirx, diry, dirz;
@@ -50,7 +81,7 @@ void getColorAtPixel (int startIdx, int w, int h, float fovtan, float fovtanAspe
       then write to rgba[idx*4..idx*4+4]
     */
 
-    for (int i=0; i<numSpheres; i++) {
+    for (int i=wid; i<numSpheres; i+=blockDim.x) {
       distanceX = origx - px[i];
       distanceY = origy - py[i];
       distanceZ = origz - pz[i];
@@ -66,24 +97,35 @@ void getColorAtPixel (int startIdx, int w, int h, float fovtan, float fovtanAspe
       }
     }
 
-
-    unsigned char pixvalue = 0;
-    if (bestHitSphere >= 0) {
-      bestPt.x = origx + dirx*bestDist;
-      bestPt.y = origy + diry*bestDist;
-      bestPt.z = origz + dirz*bestDist;
-      //bestNorm.y = (py[i] - bestPt.y) * (1.0/rad[i]);
-      //bestNorm.x = (px[i] - bestPt.x) * (1.0/rad[i]);
-      bestNorm.z = (pz[bestHitSphere] - bestPt.z) * (1.0/rad[bestHitSphere]);
-      float normalDot = bestNorm.z;
-      if (normalDot<0) normalDot = 0;
-      pixvalue = (normalDot)*255;
+    // reduce to minimum using warp shuffles
+    for (int d=1; d<warpSize; d*=2) {
+      float otherDist = __shfl_down(bestDist,d);
+      float otherBest = __shfl_down(bestHitSphere,d);
+      if (otherDist < bestDist) {
+        bestDist = otherDist;
+        bestHitSphere = otherBest;
+      }
     }
-    int pixidx = idx*4;
-    rgba[pixidx+0] = pixvalue;
-    rgba[pixidx+1] = pixvalue;
-    rgba[pixidx+2] = pixvalue;
-    rgba[pixidx+3] = 255;
+
+    if (wid==0) {
+      unsigned char pixvalue = 0;
+      if (bestHitSphere >= 0) {
+        bestPt.x = origx + dirx*bestDist;
+        bestPt.y = origy + diry*bestDist;
+        bestPt.z = origz + dirz*bestDist;
+        //bestNorm.y = (py[i] - bestPt.y) * (1.0/rad[i]);
+        //bestNorm.x = (px[i] - bestPt.x) * (1.0/rad[i]);
+        bestNorm.z = (pz[bestHitSphere] - bestPt.z) * (1.0/rad[bestHitSphere]);
+        float normalDot = bestNorm.z;
+        if (normalDot<0) normalDot = 0;
+        pixvalue = (normalDot)*255;
+      }
+      int pixidx = idx*4;
+      rgba[pixidx+0] = pixvalue;
+      rgba[pixidx+1] = pixvalue;
+      rgba[pixidx+2] = pixvalue;
+      rgba[pixidx+3] = 255;
+    }
   }
 }
 
@@ -119,19 +161,22 @@ int main(int argc, char* argv[]) {
   cam.pos = vec3(0,0,-5);
   cam.fwd = vec3(0,0,1); // straight forward
 
-  // allocate host spheres
-  float *px, *py, *pz, *rad;
-  px = (float*)calloc(nSpheres,sizeof(float));
-  py = (float*)calloc(nSpheres,sizeof(float));
-  pz = (float*)calloc(nSpheres,sizeof(float));
-  rad = (float*)calloc(nSpheres,sizeof(float));
+  // allocate host spheres as one array
+  float *spheres, *px, *py, *pz, *rad;
+  spheres = (float*)calloc(nSpheres*4,sizeof(float));
+  px = &(spheres[0]);
+  py = &spheres[nSpheres];
+  pz = &spheres[nSpheres*2];
+  rad = &spheres[nSpheres*3];
 
   // allocate device spheres
-  float *dpx, *dpy, *dpz, *drad;
-  errorCheck(cudaMalloc(&dpx,sizeof(float)*nSpheres));
-  errorCheck(cudaMalloc(&dpy,sizeof(float)*nSpheres));
-  errorCheck(cudaMalloc(&dpz,sizeof(float)*nSpheres));
-  errorCheck(cudaMalloc(&drad,sizeof(float)*nSpheres));
+  //float *dpx, *dpy, *dpz, *drad;
+  // errorCheck(cudaMalloc(&dpx,sizeof(float)*nSpheres));
+  // errorCheck(cudaMalloc(&dpy,sizeof(float)*nSpheres));
+  // errorCheck(cudaMalloc(&dpz,sizeof(float)*nSpheres));
+  // errorCheck(cudaMalloc(&drad,sizeof(float)*nSpheres));
+  float *dspheres;
+  errorCheck(cudaMalloc(&dspheres,sizeof(float)*nSpheres*4));
 
   // initialize host spheres
   for (int i=0; i<nSpheres; i++) {
@@ -142,18 +187,15 @@ int main(int argc, char* argv[]) {
   }
 
   // copy host spheres to device
-  errorCheck(cudaMemcpy(dpx,px,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
-  errorCheck(cudaMemcpy(dpy,py,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
-  errorCheck(cudaMemcpy(dpz,pz,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
-  errorCheck(cudaMemcpy(drad,rad,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
+  // errorCheck(cudaMemcpy(dpx,px,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
+  // errorCheck(cudaMemcpy(dpy,py,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
+  // errorCheck(cudaMemcpy(dpz,pz,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
+  // errorCheck(cudaMemcpy(drad,rad,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
+  errorCheck(cudaMemcpy(dspheres,spheres,sizeof(float)*nSpheres*4,cudaMemcpyHostToDevice));
   cudaDeviceSynchronize();
 
   std::chrono::time_point<std::chrono::system_clock> start, end;
   std::chrono::duration<double> elapsed_seconds;
-
-  start = std::chrono::system_clock::now();
-
-  //void getColorAtPixel (int startIdx, int w, int h, float fovtan, float fovtanAspect, vec3 origin, unsigned char *rgba, float *px, float *py, float *pz, float *rad, int numSpheres)
 
   float fvtan = cam.fovtan;
   float fvtanAsp = cam.fovtanAspect;
@@ -162,14 +204,16 @@ int main(int argc, char* argv[]) {
   orig.y = cam.pos.y;
   orig.z = cam.pos.z;
 
+  //cudaDeviceSetCacheConfig(cudaFuncCachePreferL1);
+  dim3 blockSize(32,WARPS_PER_BLOCK);
+
+  start = std::chrono::system_clock::now();
+
   for (int iter=0; iter<iterations; iter++) {
-    //for (int i=0; i<CHUNK_SIZE; i++) {
-      getColorAtPixel<<<NUM_BLOCKS, THREADS_PER_BLOCK>>>(i,w,h,fvtan,fvtanAsp,orig,drgba,dpx,dpy,dpz,drad,nSpheres);
-    //ea}
-    cudaDeviceSynchronize();
-    errorCheck(cudaGetLastError());
-    
+    getColorAtPixel<<<NUM_BLOCKS, blockSize, nSpheres*4*sizeof(float)>>>(w,h,fvtan,fvtanAsp,orig,drgba,dspheres,nSpheres);
   }
+  cudaDeviceSynchronize();
+  errorCheck(cudaGetLastError());
 
   end = std::chrono::system_clock::now();
   elapsed_seconds = end-start;
@@ -180,9 +224,8 @@ int main(int argc, char* argv[]) {
 
   if (argc > 2) show("Sample image", rgba, w, h);
 
-  free(px);
-  free(py);
-  free(pz);
-  free(rad);
+  free(spheres);
   delete[] rgba;
+  cudaFree(dspheres);
+  cudaFree(drgba);
 }
