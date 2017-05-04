@@ -6,15 +6,27 @@
 #include "imshow.h"
 #include "vecmath.h"
 
-#define THREADS_PER_BLOCK 512
-#define NUM_BLOCKS 512
+#define THREADS_PER_BLOCK 1024
+#define NUM_BLOCKS 16*6
 #define CHUNK_SIZE (THREADS_PER_BLOCK*NUM_BLOCKS)
 
 // thanks go to Lode Vandevenne for the LodePNG library and examples
 
 // kernel function should take a pixel, construct a ray for it, and cast against all spheres in the scene
 __global__
-void getColorAtPixel (int startIdx, int w, int h, float fovtan, float fovtanAspect, v3 origin, unsigned char *rgba, float *px, float *py, float *pz, float *rad, int numSpheres) {
+void getColorAtPixel (int startIdx, int w, int h, float fovtan, float fovtanAspect, v3 origin, unsigned char *rgba, float *sphereList, int numSpheres) {
+  // copy the whole sphere list into shared memory
+  // this requires 16KiB per block for 1000 spheres, and more than 1000 spheres is not yet handled
+  extern __shared__ float spheres[];
+  for (int i=threadIdx.x;i<numSpheres*4;i+=blockDim.x) {
+    spheres[i] = sphereList[i];
+  }
+  __syncthreads();
+  float *px = &spheres[0];
+  float *py = &spheres[numSpheres];
+  float *pz = &spheres[numSpheres*2];
+  float *rad = &spheres[numSpheres*3];
+
   int idx = (threadIdx.x + blockIdx.x * blockDim.x) + startIdx;
   for (idx; idx < w*h; idx += blockDim.x*gridDim.x) {
 
@@ -120,18 +132,25 @@ int main(int argc, char* argv[]) {
   cam.fwd = vec3(0,0,1); // straight forward
 
   // allocate host spheres
-  float *px, *py, *pz, *rad;
-  px = (float*)calloc(nSpheres,sizeof(float));
-  py = (float*)calloc(nSpheres,sizeof(float));
-  pz = (float*)calloc(nSpheres,sizeof(float));
-  rad = (float*)calloc(nSpheres,sizeof(float));
+  float *px, *py, *pz, *rad, *spheres;
+  spheres = (float*)calloc(nSpheres*4,sizeof(float));
+  // px = (float*)calloc(nSpheres,sizeof(float));
+  // py = (float*)calloc(nSpheres,sizeof(float));
+  // pz = (float*)calloc(nSpheres,sizeof(float));
+  // rad = (float*)calloc(nSpheres,sizeof(float));
+  px = &(spheres[0]);
+  py = &spheres[nSpheres];
+  pz = &spheres[nSpheres*2];
+  rad = &spheres[nSpheres*3];
 
   // allocate device spheres
-  float *dpx, *dpy, *dpz, *drad;
-  errorCheck(cudaMalloc(&dpx,sizeof(float)*nSpheres));
-  errorCheck(cudaMalloc(&dpy,sizeof(float)*nSpheres));
-  errorCheck(cudaMalloc(&dpz,sizeof(float)*nSpheres));
-  errorCheck(cudaMalloc(&drad,sizeof(float)*nSpheres));
+  //float *dpx, *dpy, *dpz, *drad;
+  // errorCheck(cudaMalloc(&dpx,sizeof(float)*nSpheres));
+  // errorCheck(cudaMalloc(&dpy,sizeof(float)*nSpheres));
+  // errorCheck(cudaMalloc(&dpz,sizeof(float)*nSpheres));
+  // errorCheck(cudaMalloc(&drad,sizeof(float)*nSpheres));
+  float *dspheres;
+  errorCheck(cudaMalloc(&dspheres,sizeof(float)*nSpheres*4));
 
   // initialize host spheres
   for (int i=0; i<nSpheres; i++) {
@@ -142,10 +161,11 @@ int main(int argc, char* argv[]) {
   }
 
   // copy host spheres to device
-  errorCheck(cudaMemcpy(dpx,px,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
-  errorCheck(cudaMemcpy(dpy,py,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
-  errorCheck(cudaMemcpy(dpz,pz,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
-  errorCheck(cudaMemcpy(drad,rad,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
+  // errorCheck(cudaMemcpy(dpx,px,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
+  // errorCheck(cudaMemcpy(dpy,py,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
+  // errorCheck(cudaMemcpy(dpz,pz,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
+  // errorCheck(cudaMemcpy(drad,rad,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
+  errorCheck(cudaMemcpy(dspheres,spheres,sizeof(float)*nSpheres*4,cudaMemcpyHostToDevice));
   cudaDeviceSynchronize();
 
   std::chrono::time_point<std::chrono::system_clock> start, end;
@@ -163,12 +183,9 @@ int main(int argc, char* argv[]) {
   orig.z = cam.pos.z;
 
   for (int iter=0; iter<iterations; iter++) {
-    //for (int i=0; i<CHUNK_SIZE; i++) {
-      getColorAtPixel<<<NUM_BLOCKS, THREADS_PER_BLOCK>>>(i,w,h,fvtan,fvtanAsp,orig,drgba,dpx,dpy,dpz,drad,nSpheres);
-    //ea}
+    getColorAtPixel<<<NUM_BLOCKS, THREADS_PER_BLOCK, nSpheres*4*sizeof(float)>>>(0,w,h,fvtan,fvtanAsp,orig,drgba,dspheres,nSpheres);
     cudaDeviceSynchronize();
     errorCheck(cudaGetLastError());
-    
   }
 
   end = std::chrono::system_clock::now();
@@ -180,9 +197,7 @@ int main(int argc, char* argv[]) {
 
   if (argc > 2) show("Sample image", rgba, w, h);
 
-  free(px);
-  free(py);
-  free(pz);
-  free(rad);
+  free(spheres);
   delete[] rgba;
+  cudaFree(dspheres);
 }
