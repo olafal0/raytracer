@@ -119,10 +119,10 @@
 		<text><tspan font-family="Verdana" >GPU Implementation Comparison</tspan></text>
 	</g>
 </g>
-	<g id="gnuplot_plot_1" ><title>ms, gpu v1</title>
+	<g id="gnuplot_plot_1" ><title>ms, gpu (original)</title>
 <g fill="none" color="black" stroke="currentColor" stroke-width="1.00" stroke-linecap="butt" stroke-linejoin="miter">
 	<g transform="translate(892.4,88.7)" stroke="none" fill="black" font-family="Verdana" font-size="14.00"  text-anchor="end">
-		<text><tspan font-family="Verdana" >ms, gpu v1</tspan></text>
+		<text><tspan font-family="Verdana" >ms, gpu (original)</tspan></text>
 	</g>
 </g>
 <g fill="none" color="black" stroke="currentColor" stroke-width="1.00" stroke-linecap="butt" stroke-linejoin="miter">
@@ -146,10 +146,10 @@
 	<use xlink:href='#gpPt0' transform='translate(926.7,84.1) scale(5.25)' color='rgb(148,   0, 211)'/>
 </g>
 	</g>
-	<g id="gnuplot_plot_2" ><title>ms, gpu v2</title>
+	<g id="gnuplot_plot_2" ><title>ms, gpu (reduced divergence)</title>
 <g fill="none" color="black" stroke="currentColor" stroke-width="1.00" stroke-linecap="butt" stroke-linejoin="miter">
 	<g transform="translate(892.4,109.7)" stroke="none" fill="black" font-family="Verdana" font-size="14.00"  text-anchor="end">
-		<text><tspan font-family="Verdana" >ms, gpu v2</tspan></text>
+		<text><tspan font-family="Verdana" >ms, gpu (reduced divergence)</tspan></text>
 	</g>
 </g>
 <g fill="none" color="black" stroke="currentColor" stroke-width="1.00" stroke-linecap="butt" stroke-linejoin="miter">
@@ -173,10 +173,10 @@
 	<use xlink:href='#gpPt1' transform='translate(926.7,105.1) scale(5.25)' color='rgb(  0, 158, 115)'/>
 </g>
 	</g>
-	<g id="gnuplot_plot_3" ><title>ms, gpu warp-aware</title>
+	<g id="gnuplot_plot_3" ><title>ms, gpu (warp-aware)</title>
 <g fill="none" color="black" stroke="currentColor" stroke-width="1.00" stroke-linecap="butt" stroke-linejoin="miter">
 	<g transform="translate(892.4,130.7)" stroke="none" fill="black" font-family="Verdana" font-size="14.00"  text-anchor="end">
-		<text><tspan font-family="Verdana" >ms, gpu warp-aware</tspan></text>
+		<text><tspan font-family="Verdana" >ms, gpu (warp-aware)</tspan></text>
 	</g>
 </g>
 <g fill="none" color="black" stroke="currentColor" stroke-width="1.00" stroke-linecap="butt" stroke-linejoin="miter">
@@ -200,10 +200,10 @@
 	<use xlink:href='#gpPt2' transform='translate(926.7,126.1) scale(5.25)' color='rgb( 86, 180, 233)'/>
 </g>
 	</g>
-	<g id="gnuplot_plot_4" ><title>ms, gpu v3</title>
+	<g id="gnuplot_plot_4" ><title>ms, gpu (shared memory, no warp)</title>
 <g fill="none" color="black" stroke="currentColor" stroke-width="1.00" stroke-linecap="butt" stroke-linejoin="miter">
 	<g transform="translate(892.4,151.7)" stroke="none" fill="black" font-family="Verdana" font-size="14.00"  text-anchor="end">
-		<text><tspan font-family="Verdana" >ms, gpu v3</tspan></text>
+		<text><tspan font-family="Verdana" >ms, gpu (shared memory, no warp)</tspan></text>
 	</g>
 </g>
 <g fill="none" color="black" stroke="currentColor" stroke-width="1.00" stroke-linecap="butt" stroke-linejoin="miter">

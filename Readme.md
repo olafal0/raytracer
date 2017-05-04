@@ -73,3 +73,31 @@ However, this is still short of the theoretical max, which is about 43ms.
 ### GPU
 This graph shows the performance of several different versions of the GPU implementation.
 ![](perfdata/gpu-compare.svg)
+
+Note that the original is only modestly faster than the best CPU implentation for high numbers of
+spheres, but 10x faster for a single sphere.
+
+#### Improvement: Reduced Divergence
+This minor change involved moving hit point calculations, so that (1) each thread would do less work overall,
+and (2) it would be less likely for any two threads within the same warp to have largely different
+amounts of work to do, thereby decreasing divergence.
+
+#### Improvement: Better Warps
+The original version didn't take warps into account, for the most part. Originally, each thread
+calculated the color value for a single pixel. In this version, each *warp* calculates the color
+value of a pixel. Warp shuffling is used to find the "best hit" of the raycast. Shared memory is
+also implemented.
+
+This version gave much worse results than I expected. Although it was a slight improvement for large
+numbers of spheres (1000), it was significantly slower than any CPU implementation for small numbers of spheres.
+This was due to the fact that, in cases of only one sphere, 31/32 (96.9%) of the total threads in use were idle.
+Even with large numbers of spheres, it seems that shared memory was the only redeeming factor of this implementation.
+
+#### Improvement: Shared Memory
+Since the warp-based restructuring failed, I backported the shared memory part of the implementation to
+my previous best. This version also uses grid-stride loops, which means that each thread, when finished
+with one pixel, jumps ahead in the pixel list by the size of the grid. This allows for maximizing occupancy of
+the GPU without worrying about changing grid or block sizes depending on the size of the problem. It also
+should maximize coalescence.
+
+This version resulted in a 2.3x speedup over the best CPU implementation.

@@ -49,7 +49,7 @@ set ylabel "ms to render"
 set yrange[0.4:200]
 set logscale
 set output 'gpu-compare.svg'
-plot "performance-gpu1.dat" using 1:2 w linespoints title 'ms, gpu v1', \
-"performance-gpu2.dat" using 1:2 w linespoints title 'ms, gpu v2', \
-"performance-gpuwarp.dat" using 1:2 w linespoints title 'ms, gpu warp-aware', \
-"performance-gpu3.dat" using 1:2 w linespoints title 'ms, gpu v3'
+plot "performance-gpu1.dat" using 1:2 w linespoints title 'ms, gpu (original)', \
+"performance-gpu2.dat" using 1:2 w linespoints title 'ms, gpu (reduced divergence)', \
+"performance-gpuwarp.dat" using 1:2 w linespoints title 'ms, gpu (warp-aware)', \
+"performance-gpu3.dat" using 1:2 w linespoints title 'ms, gpu (shared memory, no warp)'
