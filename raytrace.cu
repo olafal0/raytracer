@@ -6,33 +6,19 @@
 #include "imshow.h"
 #include "vecmath.h"
 
-// for GTX 760:
-// 1024 threads per block
-// 2048 threads per SM
-// 16 blocks per SM
-// 6 SMs
-
 #define THREADS_PER_BLOCK 1024
 #define NUM_BLOCKS 16*6
-// use WARPS_PER_BLOCK to set blockDim.y, warpSize to set blockDim.x
-#define WARPS_PER_BLOCK (THREADS_PER_BLOCK/32)
+#define CHUNK_SIZE (THREADS_PER_BLOCK*NUM_BLOCKS)
 
-// thanks go to Lode Vandevenne for the LodePNG examples
-
-// each warp (each 32 threads) is reponsible for one pixel
-// pixel id = threadIdx.y + blockIdx.x * blockDim.x
-// threadIdx.x is id (0..31) of thread in the warp for that pixel
-// each thread should perform a warp-stride loop over sphere list and find its best match
-// then, log2(32)=5 loops of warp shuffles to reduce values,
-// until threadIdx.x=0 has the closest hit sphere
+// thanks go to Lode Vandevenne for the LodePNG library and examples
 
 // kernel function should take a pixel, construct a ray for it, and cast against all spheres in the scene
 __global__
-void getColorAtPixel (int w, int h, float fovtan, float fovtanAspect, v3 origin, unsigned char *rgba, float *sphereList, int numSpheres) {
+void getColorAtPixel (int startIdx, int w, int h, float fovtan, float fovtanAspect, v3 origin, unsigned char *rgba, float *sphereList, int numSpheres) {
   // copy the whole sphere list into shared memory
-  // this requires 16KiB per block for 1000 spheres, unlimited spheres are not yet handled
+  // this requires 16KiB per block for 1000 spheres, and more than 1000 spheres is not yet handled
   extern __shared__ float spheres[];
-  for (int i=threadIdx.x+(threadIdx.y*blockDim.x);i<numSpheres*4;i+=blockDim.x*blockDim.y) {
+  for (int i=threadIdx.x;i<numSpheres*4;i+=blockDim.x) {
     spheres[i] = sphereList[i];
   }
   __syncthreads();
@@ -40,10 +26,9 @@ void getColorAtPixel (int w, int h, float fovtan, float fovtanAspect, v3 origin,
   float *py = &spheres[numSpheres];
   float *pz = &spheres[numSpheres*2];
   float *rad = &spheres[numSpheres*3];
-  
-  // do for each pixel...
-  int idx = (threadIdx.y + blockIdx.x * blockDim.y);
-  for (; idx < w*h; idx += blockDim.y*gridDim.x) {
+
+  int idx = (threadIdx.x + blockIdx.x * blockDim.x) + startIdx;
+  for (idx; idx < w*h; idx += blockDim.x*gridDim.x) {
 
     // get pixel coords
     int x = idx % w;
@@ -156,9 +141,14 @@ int main(int argc, char* argv[]) {
   cam.pos = vec3(0,0,-5);
   cam.fwd = vec3(0,0,1); // straight forward
 
-  // allocate host spheres as one array
-  float *spheres, *px, *py, *pz, *rad;
+  // allocate host spheres
+  float *px, *py, *pz, *rad, *spheres;
   spheres = (float*)calloc(nSpheres*4,sizeof(float));
+  // px = (float*)calloc(nSpheres,sizeof(float));
+  // py = (float*)calloc(nSpheres,sizeof(float));
+  // pz = (float*)calloc(nSpheres,sizeof(float));
+  // rad = (float*)calloc(nSpheres,sizeof(float));
+
   px = &(spheres[0]);
   py = &spheres[nSpheres];
   pz = &spheres[nSpheres*2];
@@ -205,7 +195,9 @@ int main(int argc, char* argv[]) {
   start = std::chrono::system_clock::now();
 
   for (int iter=0; iter<iterations; iter++) {
-    getColorAtPixel<<<NUM_BLOCKS, blockSize, nSpheres*4*sizeof(float)>>>(w,h,fvtan,fvtanAsp,orig,drgba,dspheres,nSpheres);
+    getColorAtPixel<<<NUM_BLOCKS, THREADS_PER_BLOCK, nSpheres*4*sizeof(float)>>>(0,w,h,fvtan,fvtanAsp,orig,drgba,dspheres,nSpheres);
+    cudaDeviceSynchronize();
+    errorCheck(cudaGetLastError());
   }
   cudaDeviceSynchronize();
   errorCheck(cudaGetLastError());
