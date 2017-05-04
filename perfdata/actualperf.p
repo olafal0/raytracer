@@ -26,13 +26,14 @@ plot "performance-original.dat" using 1:2 w linespoints title 'ms, original', \
 "performance-inline.dat" using 1:2 w linespoints title 'ms, inlined', \
 "performance-soa.dat" using 1:2 w linespoints title 'ms, SoA', \
 "performance-pipelined.dat" using 1:2 w linespoints title 'ms, pipelined', \
-"performance-gpu2.dat" using 1:2 w linespoints title 'ms, GPU', \
+"performance-gpu3.dat" using 1:2 w linespoints title 'ms, GPU', \
 "performance-gpuwarp.dat" using 1:2 w linespoints title 'ms, GPU warp'
 
 reset
 set logscale
 set output 'gpu-compare.png'
-plot (((x*19+28)*2*1920*1080)/8710000000) title 'ms total, FLOP bound (GPU)', \
+plot (((x*19+28)*2*1920*1080)/8710000000.0) title 'ms total, FLOP bound (GPU)', \
 "performance-gpu1.dat" using 1:2 w linespoints title 'ms, gpu 1', \
 "performance-gpu2.dat" using 1:2 w linespoints title 'ms, gpu 2', \
-"performance-gpuwarp.dat" using 1:2 w linespoints title 'ms, gpu warp-aware'
+"performance-gpuwarp.dat" using 1:2 w linespoints title 'ms, gpu warp-aware', \
+"performance-gpu3.dat" using 1:2 w linespoints title 'ms, gpu 3'
