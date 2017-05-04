@@ -14,7 +14,6 @@
 
 #define THREADS_PER_BLOCK 1024
 #define NUM_BLOCKS 16*6
-#define CHUNK_SIZE (THREADS_PER_BLOCK*NUM_BLOCKS)
 // use WARPS_PER_BLOCK to set blockDim.y, warpSize to set blockDim.x
 #define WARPS_PER_BLOCK (THREADS_PER_BLOCK/32)
 
@@ -31,7 +30,7 @@
 __global__
 void getColorAtPixel (int w, int h, float fovtan, float fovtanAspect, v3 origin, unsigned char *rgba, float *sphereList, int numSpheres) {
   // copy the whole sphere list into shared memory
-  // this requires 16KiB per block for 1000 spheres, and more than 1000 spheres is not yet handled
+  // this requires 16KiB per block for 1000 spheres, unlimited spheres are not yet handled
   extern __shared__ float spheres[];
   for (int i=threadIdx.x+(threadIdx.y*blockDim.x);i<numSpheres*4;i+=blockDim.x*blockDim.y) {
     spheres[i] = sphereList[i];
@@ -41,8 +40,8 @@ void getColorAtPixel (int w, int h, float fovtan, float fovtanAspect, v3 origin,
   float *py = &spheres[numSpheres];
   float *pz = &spheres[numSpheres*2];
   float *rad = &spheres[numSpheres*3];
-  // 2D grid and 3D block
-  // check which threads are in the same warp
+  
+  // do for each pixel...
   int idx = (threadIdx.y + blockIdx.x * blockDim.y);
   for (; idx < w*h; idx += blockDim.y*gridDim.x) {
 
@@ -74,13 +73,6 @@ void getColorAtPixel (int w, int h, float fovtan, float fovtanAspect, v3 origin,
     int bestHitSphere = -1;
     v3 bestPt, bestNorm;
 
-    /*
-      Accesses for this thread:
-      p{x,y,z}[0..n]
-      rad[0..n]
-      then write to rgba[idx*4..idx*4+4]
-    */
-
     for (int i=wid; i<numSpheres; i+=blockDim.x) {
       distanceX = origx - px[i];
       distanceY = origy - py[i];
@@ -107,26 +99,29 @@ void getColorAtPixel (int w, int h, float fovtan, float fovtanAspect, v3 origin,
       }
     }
 
-    if (wid==0) {
-      unsigned char pixvalue = 0;
-      if (bestHitSphere >= 0) {
-        bestPt.x = origx + dirx*bestDist;
-        bestPt.y = origy + diry*bestDist;
-        bestPt.z = origz + dirz*bestDist;
-        //bestNorm.y = (py[i] - bestPt.y) * (1.0/rad[i]);
-        //bestNorm.x = (px[i] - bestPt.x) * (1.0/rad[i]);
-        bestNorm.z = (pz[bestHitSphere] - bestPt.z) * (1.0/rad[bestHitSphere]);
-        float normalDot = bestNorm.z;
-        if (normalDot<0) normalDot = 0;
-        pixvalue = (normalDot)*255;
-      }
-      int pixidx = idx*4;
-      rgba[pixidx+0] = pixvalue;
-      rgba[pixidx+1] = pixvalue;
-      rgba[pixidx+2] = pixvalue;
-      rgba[pixidx+3] = 255;
+    int pixidx = idx*4;
+
+    // use other threads in warp for writing
+    bestDist = __shfl(bestDist,0);
+    bestHitSphere = __shfl(bestHitSphere,0);
+    unsigned char pixvalue = 0;
+    if (bestHitSphere >= 0) {
+      bestPt.x = origx + dirx*bestDist;
+      bestPt.y = origy + diry*bestDist;
+      bestPt.z = origz + dirz*bestDist;
+      //bestNorm.y = (py[i] - bestPt.y) * (1.0/rad[i]);
+      //bestNorm.x = (px[i] - bestPt.x) * (1.0/rad[i]);
+      bestNorm.z = (pz[bestHitSphere] - bestPt.z) * (1.0/rad[bestHitSphere]);
+      float normalDot = bestNorm.z;
+      if (normalDot<0) normalDot = 0;
+      pixvalue = (normalDot)*255;
+    }
+    if (wid==3) pixvalue = 255;
+    if (wid < 4) {
+      rgba[pixidx+wid] = pixvalue;
     }
   }
+  // ops: 28 per pixel + (19 per sphere)
 }
 
 void errorCheck (int errorCode) {
@@ -144,7 +139,7 @@ int main(int argc, char* argv[]) {
   int nSpheres = atoi(argv[1]);
   int iterations;
   if (argc > 2) iterations = 1;
-  else iterations = 100;
+  else iterations = 10;
   // make a 512x512 image
   uint w, h;
   w = 1920;
