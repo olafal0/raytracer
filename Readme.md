@@ -4,6 +4,7 @@ Raytracing is an algorithm for rendering in a highly detailed, physically accura
 In this specific implementation of raytracing, full physical accuracy is not expected. It will generate an image which is shaded in a very simple manner, using sphere primatives.
 
 ## Perfomance Estimation
+#### CPU
 Raytracing is not very memory intensive. For small scenes with few objects, the only memory that will be used is roughly 20 bytes per sphere in the scene,
 and about 50 bytes for the view object. Pretty much any thread will be able to contain the entire set of scene information in cache. Also, all of the scene
 information is not modified during rendering. The result of all of these factors is that the rendering process can have almost no overhead.
@@ -29,30 +30,46 @@ So, we can get a rough estimate of FLOPs. If *n* is the number of spheres, that 
 
 The estimated performance, in milliseconds taken to render a 1920x1080 image:
 
-![](expected-raytrace-perf.png)
+![](perfdata/expected-raytrace-perf.svg)
 
-## Real Performance measurement (Updated)
-This is the graph, showing expected performance, and actual performance of three different versions of the program.
-![](perfdata/actual-raytrace-perf.png)
+Note the marker, at t = 16.67ms. This is the speed needed to achieve 60 frames per second in a
+real-time application. In this theoretical model, that can be achieved with ~390 spheres.
 
-The blue line is the measured performance of the original implementation, in milliseconds per 1920x1080 image, compared to the theoretical best.
+#### GPU
 
+For the GPU implementation, these numbers become less clear. We know that the [Nvidia K80's](http://www.nvidia.com/object/tesla-k80.html)
+dual-GPU design is capable of 8.73 TFLOPS, which means we can expect roughly
+4.3 TFLOPS by making use of only one GPU. Since the target performance of the CPU implementation
+was 1.7 TFLOPS, we can expect at least double the performance. In other words,
+the GPU should take, at most, half the time to complete that the CPU version does.
+
+## Real Performance measurement
+### CPU
+This graph shows expected performance, and actual performance of different versions of the CPU implementation.
+![](perfdata/actual-raytrace-perf.svg)
+
+#### Improvement: Inlined
 The inlined version represents the improvement gained by inlining many functions, especially vector functions.
 
+#### Improvement: Structure of Arrays
 The SoA version replaces the previous method of calling ray::castAgainst(sphere) with a more streamlined version.
 The major optimization here is that sphere objects are no longer necessary. Instead, arrays of positions (px, py, and pz)
 are used to represent the spheres. This makes memory accesses more predictable and closer together, since it is so common
 to do operations like x1\*x2 + y1\*y2. In addition, there is no longer a seperate function for casting against a sphere.
 Rays are cast against all spheres in a row inside of the getColorAtPixel function.
 
-The pipelined version changes how the code is written to make it easier for the compiler to properly vectorize it. This was a significant improvement.
+#### Improvement: Pipelined
+The pipelined version changes how the code is written to make it easier for the compiler to properly vectorize it.
+Each thread, instead of processing line-sphere intersections for one sphere at a time, processes multiple spheres
+in parallel using SIMD. This change doubled the speed of the CPU implementation.
 
-This is a graph comparing the versions of my implementation:
+This is a graph comparing the versions of my CPU implementation:
 
-![](perfdata/implementation-compare.png)
+![](perfdata/implementation-compare.svg)
 
-Clearly, performance has gotten significantly better―1000 spheres has gone from almost 900ms to 315ms (and now 140ms with pipelining).
+Clearly, performance has gotten significantly better―1000 spheres has gone from almost 900ms to 140ms.
 However, this is still short of the theoretical max, which is about 43ms.
-I'm not quite sure which improvements should be made next. It seems likely that vectorization through AVX
-is slower than it could be if it were made explicit. Additionally, many spheres could be skipped altogether
-with more clever checking (which means it could be possible to exceed max performance).
+
+### GPU
+This graph shows the performance of several different versions of the GPU implementation.
+![](perfdata/gpu-compare.svg)
