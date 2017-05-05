@@ -30,7 +30,7 @@ So, we can get a rough estimate of FLOPs. If *n* is the number of spheres, that 
 
 The estimated performance, in milliseconds taken to render a 1920x1080 image:
 
-![](perfdata/expected-raytrace-perf.svg)
+![](https://rawgit.com/olafal0/raytracer/master/perfdata/expected-raytrace-perf.svg)
 
 Note the marker, at t = 16.67ms. This is the speed needed to achieve 60 frames per second in a
 real-time application. In this theoretical model, that can be achieved with ~390 spheres.
@@ -46,7 +46,7 @@ the GPU should take, at most, half the time to complete that the CPU version doe
 ## Real Performance measurement
 ### CPU
 This graph shows expected performance, and actual performance of different versions of the CPU implementation.
-![](perfdata/actual-raytrace-perf.svg)
+![](https://rawgit.com/olafal0/raytracer/master/perfdata/actual-raytrace-perf.svg)
 
 #### Improvement: Inlined
 The inlined version represents the improvement gained by inlining many functions, especially vector functions.
@@ -65,14 +65,14 @@ in parallel using SIMD. This change doubled the speed of the CPU implementation.
 
 This is a graph comparing the versions of my CPU implementation:
 
-![](perfdata/implementation-compare.svg)
+![](https://rawgit.com/olafal0/raytracer/master/perfdata/implementation-compare.svg)
 
 Clearly, performance has gotten significantly better―1000 spheres has gone from almost 900ms to 140ms.
 However, this is still short of the theoretical max, which is about 43ms.
 
 ### GPU
 This graph shows the performance of several different versions of the GPU implementation.
-![](perfdata/gpu-compare.svg)
+![](https://rawgit.com/olafal0/raytracer/master/perfdata/gpu-compare.svg)
 
 Note that the original is only modestly faster than the best CPU implentation for high numbers of
 spheres, but 10x faster for a single sphere.
