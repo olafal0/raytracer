@@ -28,8 +28,6 @@ public:
     y = y/m;
     z = z/m;
   };
-  void rotateAroundX(float degrees);
-  void rotateAroundY(float degrees);
   float dot(const vec3 rhs);
   vec3& operator= (const vec3& rhs);
   vec3 operator+ (const vec3& rhs) const;
@@ -41,45 +39,6 @@ struct rayhit {
 public:
   vec3 point, normal;
   float distance;
-};
-
-class sphere {
-public:
-  vec3 pos;
-  float rad;
-  sphere () {
-    pos = vec3(0,0,0);
-    rad = 0.5;
-  };
-};
-
-class spherelist {
-private:
-  int cur, size;
-  float *px, *py, *pz, *rad;
-public:
-  spherelist(int sz) {
-    px = (float*)calloc(size,sizeof(float));
-    py = (float*)calloc(size,sizeof(float));
-    pz = (float*)calloc(size,sizeof(float));
-    rad = (float*)calloc(size,sizeof(float));
-    cur = 0;
-    size = sz;
-  }
-  inline void setPos(int i, float x, float y, float z) {
-    px[i] = x;
-    py[i] = y;
-    pz[i] = z;
-  }
-  inline void setRad(int i, float r) {
-    rad[i] = r;
-  }
-  ~spherelist () {
-    free(px);
-    free(py);
-    free(pz);
-    free(rad);
-  }
 };
 
 struct ray {

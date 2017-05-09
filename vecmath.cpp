@@ -31,27 +31,6 @@ vec3 vec3::operator* (const float scalar) const {
   return vec3 (x*scalar,y*scalar,z*scalar);
 }
 
-// 3 mult, 2 add
-float vec3::dot(const vec3 rhs) {
-  return x*rhs.x + y*rhs.y + z*rhs.z;
-}
-
-void vec3::rotateAroundX (float degrees) {
-  float rads = degrees * DEG_TO_RAD;
-  float costheta = cos(rads);
-  float sintheta = sin(rads);
-  // don't modify x
-  y = y*costheta + (z * -sintheta);
-  z = y*sintheta + z*costheta;
-}
-
-void vec3::rotateAroundY (float degrees) {
-  float rads = degrees * DEG_TO_RAD;
-  float costheta = cos(rads);
-  float sintheta = sin(rads);
-  x = x*costheta + z*sintheta;
-  z = x*-sintheta + z*costheta;
-}
 
 view::view (int width, int height, float fieldOfView) {
   w = width;
@@ -73,41 +52,3 @@ ray view::getRayForPixel(int x, int y) {
 
   return r;
 }
-
-// 15 mult 21 add 1 branch 2 sqrt
-// bool ray::castAgainst(const spherelist s, int i, rayhit *hit) {
-//   // direction, origin, s.pos
-//   float x[3], y[3], z[3];
-//   x[0] = direction.x;
-//   x[1] = origin.x;
-//   x[2] = s.pos.x;
-//   y[0] = direction.y;
-//   y[1] = origin.y;
-//   y[2] = s.pos.y;
-//   z[0] = direction.z;
-//   z[1] = origin.z;
-//   z[2] = s.pos.z;
-  
-//   // math stolen from Wikipedia (en.wikipedia.org/wiki/Line–sphere_intersection)
-//   //float dotProduct = direction.dot(origin-s.pos);
-//   float dotProduct = x[0]*(x[1]-x[2]) + y[0]*(y[1]-y[2]) + z[0]*(z[1]-z[2]);
-//   //float distanceBetweenSqr = (origin-s.pos).sqrMagnitude();
-//   float distanceBetweenX = x[1]-x[2];
-//   float distanceBetweenY = y[1]-y[2];
-//   float distanceBetweenZ = z[1]-z[2];
-//   float distanceBetweenSqr = distanceBetweenX*distanceBetweenX + distanceBetweenY*distanceBetweenY + distanceBetweenZ*distanceBetweenZ;
-//   float importantPart = dotProduct*dotProduct - distanceBetweenSqr + s.rad*s.rad;
-//   if (importantPart < 0) {
-//     return false;
-//   }
-
-//   float d = -dotProduct - sqrt(importantPart);
-//   // this is slower:
-//   // hit->point.x = x[1] + x[0]*d;
-//   // hit->point.y = y[1] + y[0]*d;
-//   // hit->point.z = z[1] + z[0]*d;
-//   hit->point = origin + direction*d;
-//   hit->normal = (s.pos - hit->point) * (1.0/s.rad);
-//   hit->distance = d;
-//   return true;
-// }

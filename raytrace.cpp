@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
   int iterations;
   if (argc > 2) iterations = 1;
   else iterations = 100;
-  // make a 512x512 image
+  // make the image
   uint w, h;
   w = 1920;
   h = 1080;
@@ -36,6 +36,7 @@ int main(int argc, char* argv[]) {
   pz = (float*)calloc(nSpheres,sizeof(float));
   rad = (float*)calloc(nSpheres,sizeof(float));
 
+  // sort of an X pattern
   for (int i=0; i<nSpheres; i++) {
     px[i] = ((i%2)*2-1)*0.05*i;
     py[i] = (((i/2)%2)*2-1)*0.05*i;
@@ -146,7 +147,6 @@ void getColorAtPixel (float *px, float *py, float *pz, float *rad, ray r, int nu
     ds[j] = -dotProducts[j] - sqrt(importantParts[j]);
     if (ds[j] < bestHit.distance) {
       bestHit.point = r.origin + r.direction*ds[j];
-      // hit->normal = (s.pos - hit->point) * (1.0/rad[i]);
       //bestHit.normal.y = (py[i+j] - bestHit.point.y) * (1.0/rad[i+j]);
       //bestHit.normal.x = (px[i+j] - bestHit.point.x) * (1.0/rad[i+j]);
       bestHit.normal.z = (pz[i+j] - bestHit.point.z) * (1.0/rad[i+j]);

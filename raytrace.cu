@@ -12,7 +12,6 @@
 
 // thanks go to Lode Vandevenne for the LodePNG library and examples
 
-// kernel function should take a pixel, construct a ray for it, and cast against all spheres in the scene
 __global__
 void getColorAtPixel (int startIdx, int w, int h, float fovtan, float fovtanAspect, v3 origin, unsigned char *rgba, float *sphereList, int numSpheres) {
   // copy the whole sphere list into shared memory
@@ -55,13 +54,6 @@ void getColorAtPixel (int startIdx, int w, int h, float fovtan, float fovtanAspe
     int bestHitSphere = -1;
     v3 bestPt, bestNorm;
 
-    /*
-      Accesses for this thread:
-      p{x,y,z}[0..n]
-      rad[0..n]
-      then write to rgba[idx*4..idx*4+4]
-    */
-
     for (int i=0; i<numSpheres; i++) {
       distanceX = origx - px[i];
       distanceY = origy - py[i];
@@ -84,8 +76,8 @@ void getColorAtPixel (int startIdx, int w, int h, float fovtan, float fovtanAspe
       bestPt.x = origx + dirx*bestDist;
       bestPt.y = origy + diry*bestDist;
       bestPt.z = origz + dirz*bestDist;
-      //bestNorm.y = (py[i] - bestPt.y) * (1.0/rad[i]);
       //bestNorm.x = (px[i] - bestPt.x) * (1.0/rad[i]);
+      //bestNorm.y = (py[i] - bestPt.y) * (1.0/rad[i]);
       bestNorm.z = (pz[bestHitSphere] - bestPt.z) * (1.0/rad[bestHitSphere]);
       float normalDot = bestNorm.z;
       if (normalDot<0) normalDot = 0;
@@ -115,7 +107,7 @@ int main(int argc, char* argv[]) {
   int iterations;
   if (argc > 2) iterations = 1;
   else iterations = 100;
-  // make a 512x512 image
+  
   uint w, h;
   w = 1920;
   h = 1080;
@@ -134,21 +126,12 @@ int main(int argc, char* argv[]) {
   // allocate host spheres
   float *px, *py, *pz, *rad, *spheres;
   spheres = (float*)calloc(nSpheres*4,sizeof(float));
-  // px = (float*)calloc(nSpheres,sizeof(float));
-  // py = (float*)calloc(nSpheres,sizeof(float));
-  // pz = (float*)calloc(nSpheres,sizeof(float));
-  // rad = (float*)calloc(nSpheres,sizeof(float));
   px = &(spheres[0]);
   py = &spheres[nSpheres];
   pz = &spheres[nSpheres*2];
   rad = &spheres[nSpheres*3];
 
   // allocate device spheres
-  //float *dpx, *dpy, *dpz, *drad;
-  // errorCheck(cudaMalloc(&dpx,sizeof(float)*nSpheres));
-  // errorCheck(cudaMalloc(&dpy,sizeof(float)*nSpheres));
-  // errorCheck(cudaMalloc(&dpz,sizeof(float)*nSpheres));
-  // errorCheck(cudaMalloc(&drad,sizeof(float)*nSpheres));
   float *dspheres;
   errorCheck(cudaMalloc(&dspheres,sizeof(float)*nSpheres*4));
 
@@ -161,10 +144,6 @@ int main(int argc, char* argv[]) {
   }
 
   // copy host spheres to device
-  // errorCheck(cudaMemcpy(dpx,px,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
-  // errorCheck(cudaMemcpy(dpy,py,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
-  // errorCheck(cudaMemcpy(dpz,pz,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
-  // errorCheck(cudaMemcpy(drad,rad,sizeof(float)*nSpheres,cudaMemcpyHostToDevice));
   errorCheck(cudaMemcpy(dspheres,spheres,sizeof(float)*nSpheres*4,cudaMemcpyHostToDevice));
   cudaDeviceSynchronize();
 
@@ -172,8 +151,6 @@ int main(int argc, char* argv[]) {
   std::chrono::duration<double> elapsed_seconds;
 
   start = std::chrono::system_clock::now();
-
-  //void getColorAtPixel (int startIdx, int w, int h, float fovtan, float fovtanAspect, vec3 origin, unsigned char *rgba, float *px, float *py, float *pz, float *rad, int numSpheres)
 
   float fvtan = cam.fovtan;
   float fvtanAsp = cam.fovtanAspect;
