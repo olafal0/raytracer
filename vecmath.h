@@ -11,6 +11,8 @@ struct v3 {
     float x, y, z;
 };
 
+typedef struct SphereList { float *x, *y, *z, *radius; } SphereList;
+
 class vec3 {
   public:
     float x, y, z;
@@ -36,15 +38,13 @@ class vec3 {
 };
 
 struct rayhit {
-  public:
     vec3 point, normal;
     float distance;
+    bool exists;
 };
 
 struct ray {
-  public:
     vec3 origin, direction;
-    // bool castAgainst(spherelist, int, rayhit*);
 };
 
 // represents a combination camera/screen
